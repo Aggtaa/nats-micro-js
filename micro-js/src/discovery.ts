@@ -11,6 +11,7 @@ import pjson from '../package.json';
 
 export type MicroserviceMethodConfig<T, R> = {
   handler: (args: T) => MaybePromise<R>,
+  subject?: string,
   input?: z.ZodType<T>,
   output?: z.ZodType<R>,
 }
@@ -139,7 +140,15 @@ export class Discovery {
         '_nats.client.created.version': pjson.version,
       },
     };
+  }
 
+  public getMethodSubject(
+    name: string,
+    method: MicroserviceMethodConfig<unknown, unknown>
+  ): string {
+    if (method.subject)
+      return method.subject;
+    return `${this.config.name}.${name}`;
   }
 
   private async handleInfo(): Promise<InfoResponse> {
@@ -147,10 +156,10 @@ export class Discovery {
       ...this.makeResponse(),
       description: this.config.description,
       type: 'io.nats.micro.v1.info_response',
-      endpoints: Object.keys(this.config.methods)
-        .map((n) => ({
+      endpoints: Object.entries(this.config.methods)
+        .map(([n, m]) => ({
           name: n,
-          subject: `${this.config.name}.${n}`,
+          subject: this.getMethodSubject(n, m),
           metadata: null,
         })),
     };
@@ -161,13 +170,13 @@ export class Discovery {
       ...this.makeResponse(),
       type: 'io.nats.micro.v1.stats_response',
       started: moment(this.startedAt).toISOString(),
-      endpoints: Object.keys(this.config.methods)
-        .map((n) => ({
+      endpoints: Object.entries(this.config.methods)
+        .map(([n, m]) => ({
           name: n,
-          subject: `${this.config.name}.${n}`,
+          subject: this.getMethodSubject(n, m),
           ...(this.methodStats[n] ?? emptyMethodProfile),
         })),
-    };
+    }
   }
 
   private async handlePing(): Promise<PingResponse> {

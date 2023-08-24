@@ -53,6 +53,14 @@ export class Broker implements Sender {
     }
   }
 
+  private decode(msg: nats.Msg): unknown {
+    const str = msg.string();
+    if (str == '')
+      return '';
+
+    return this.codec.decode(msg.data);
+  }
+
   private handleMessageFromSubscription(
     err: nats.NatsError | null,
     msg: nats.Msg,
@@ -65,7 +73,7 @@ export class Broker implements Sender {
         this.ee.emit(
           msg.subject,
           {
-            data: this.codec.decode(msg.data),
+            data: this.decode(msg),
             headers: msg.headers,
             replyTo: msg.reply,
           } as MessageMaybeReplyTo<unknown>,

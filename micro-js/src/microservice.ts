@@ -48,7 +48,7 @@ export class Microservice {
 
     for (const [name, method] of Object.entries(this.discovery.config.methods)) {
       this.broker.on<unknown>(
-        { microservice: this.discovery.config.name, method: name },
+        this.discovery.getMethodSubject(name, method),
         wrapMethod(this.broker, this.profileMethod(name, method.handler)),
       );
     }
