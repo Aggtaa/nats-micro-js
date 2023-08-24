@@ -1,5 +1,5 @@
 import { Broker } from './broker';
-import { Discovery, MicroserviceConfig } from './discovery';
+import { Discovery, MicroserviceConfig, MicroserviceMethodConfig } from './discovery';
 import { MaybePromise, wrapMethod } from './types';
 
 export class Microservice {
@@ -24,34 +24,31 @@ export class Microservice {
     return ms;
   }
 
-  // public registerListener<T>(
-  //   subject: string,
-  //   handler: (args: T) => MaybePromise<void>,
-  //   params?: {
-  //     input: z.ZodType<T>,
-  //   }
-  // ): this {
+  private initMethod<R, T>(name: string, method: MicroserviceMethodConfig<R, T>): void {
 
-  //   // TODO
-  //   // this.broker.on(
-  //   //   this.discovery.config.name,
-  //   //   `$ALL.${subject}`,
-  //   //   this.wrapMethod(handler.bind(this))
-  //   // )
-
-  //   return this;
-  // }
+    this.broker.on<unknown>(
+      this.discovery.getMethodSubject(name, method),
+      wrapMethod(this.broker, this.profileMethod(name, method.handler)),
+    );
+  }
 
   public async init(): Promise<this> {
 
     await this.discovery.init();
 
-    for (const [name, method] of Object.entries(this.discovery.config.methods)) {
-      this.broker.on<unknown>(
-        this.discovery.getMethodSubject(name, method),
-        wrapMethod(this.broker, this.profileMethod(name, method.handler)),
-      );
-    }
+    for (const [name, method] of Object.entries(this.discovery.config.methods))
+      this.initMethod(name, method);
+
+    return this;
+  }
+
+  public addMethod<R, T>(
+    name: string,
+    method: MicroserviceMethodConfig<R, T>,
+  ): this {
+
+    this.discovery.addMethod(name, method);
+    this.initMethod(name, method);
 
     return this;
   }

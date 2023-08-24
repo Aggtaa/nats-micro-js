@@ -1,10 +1,11 @@
 {
   "name": "nats-micro",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "NATS micro compatible extra-lightweight microservice library",
-  "main": "src/index",
+  "main": "lib/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf lib && tsc",
+    "prepublishOnly": "npm run test && npm run build",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "echo 'No tests yet'"
   },

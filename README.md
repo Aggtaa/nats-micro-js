@@ -1,6 +1,6 @@
 # NATS Microservice Library
-### Tiny microservice library based on NATS
-### and compatible with nats-go microservices
+
+A convenient microservice library based on NATS and compatible with nats-go microservices
 
 ### Description
 

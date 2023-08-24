@@ -12,6 +12,7 @@ import pjson from '../package.json';
 export type MicroserviceMethodConfig<T, R> = {
   handler: (args: T) => MaybePromise<R>,
   subject?: string,
+  metadata?: Record<string, unknown>;
   input?: z.ZodType<T>,
   output?: z.ZodType<R>,
 }
@@ -20,6 +21,7 @@ export type MicroserviceConfig = {
   name: string;
   description: string;
   version: string;
+  metadata?: Record<string, unknown>;
   methods: Record<string, MicroserviceMethodConfig<unknown, unknown>>,
 }
 
@@ -111,6 +113,13 @@ export class Discovery {
     return this;
   }
 
+  public addMethod<R, T>(
+    name: string,
+    method: MicroserviceMethodConfig<R, T>,
+  ): void {
+    this.config.methods[name] = method;
+  }
+
   public profileMethod(
     name: string,
     error: string | undefined,
@@ -138,13 +147,14 @@ export class Discovery {
       metadata: {
         '_nats.client.created.library': pjson.name,
         '_nats.client.created.version': pjson.version,
+        ...this.config.metadata,
       },
     };
   }
 
   public getMethodSubject(
     name: string,
-    method: MicroserviceMethodConfig<unknown, unknown>
+    method: MicroserviceMethodConfig<unknown, unknown>,
   ): string {
     if (method.subject)
       return method.subject;
@@ -160,7 +170,7 @@ export class Discovery {
         .map(([n, m]) => ({
           name: n,
           subject: this.getMethodSubject(n, m),
-          metadata: null,
+          metadata: m.metadata ?? null,
         })),
     };
   }
@@ -176,7 +186,7 @@ export class Discovery {
           subject: this.getMethodSubject(n, m),
           ...(this.methodStats[n] ?? emptyMethodProfile),
         })),
-    }
+    };
   }
 
   private async handlePing(): Promise<PingResponse> {
