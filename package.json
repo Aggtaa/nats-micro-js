@@ -1,15 +1,15 @@
 {
   "name": "nats-micro",
-  "version": "0.0.1",
-  "description": "",
+  "version": "0.0.2",
+  "description": "NATS micro compatible extra-lightweight microservice library",
   "main": "src/index",
   "scripts": {
     "build": "tsc",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "echo 'No tests yet'"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["nats", "queue", "micro", "microservice", "microservices", "pubsub", "autodiscovery", "typescript", "event-bus", "emit", "event"],
+  "author": "Anton Zykov <npm@ormo.cc>",
   "license": "ISC",
   "dependencies": {
     "errio": "^1.2.2",
