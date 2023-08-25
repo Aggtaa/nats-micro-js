@@ -24,6 +24,9 @@
   ],
   "author": "Anton Zykov <npm@ormo.cc>",
   "license": "ISC",
+  "homepage": "https://github.com/Aggtaa/nats-micro-js",
+  "bugs": "https://github.com/Aggtaa/nats-micro-js/issues",
+  "repository": "Aggtaa/nats-micro-js",
   "dependencies": {
     "errio": "^1.2.2",
     "fast-safe-stringify": "^2.1.1",
