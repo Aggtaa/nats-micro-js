@@ -1,4 +1,5 @@
 import { Broker } from './broker';
+import { storage } from './decorators/storage';
 import { Discovery } from './discovery';
 import { MicroserviceConfig, MicroserviceMethodConfig } from './types';
 import { MaybePromise } from './types/types';
@@ -19,6 +20,20 @@ export class Microservice {
     const ms = new Microservice(broker, config);
     await ms.start();
     return ms;
+  }
+
+  public static async createFromClass<T extends object>(
+    broker: Broker,
+    target: T,
+  ): Promise<Microservice> {
+    const config = storage.getConfig(target);
+    if (!config)
+      throw new Error('Class not found');
+
+    for (const method of Object.values(config.methods))
+      method.handler = method.handler.bind(target);
+
+    return Microservice.create(broker, config);
   }
 
   private startMethod<R, T>(name: string, method: MicroserviceMethodConfig<R, T>): void {

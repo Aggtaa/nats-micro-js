@@ -11,6 +11,10 @@ export function randomId(): string {
   return nanoid(16);
 }
 
+export function camelCase(s: string) {
+  return s.replace(/(?<=.)([A-Z])/g, '-$1').toLowerCase();
+}
+
 export function wrapMethod<T, R>(
   broker: Sender,
   callback: (args: T) => MaybePromise<R>,
