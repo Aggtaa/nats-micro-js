@@ -1,43 +1,40 @@
 import { Broker } from './broker';
-import { Discovery, MicroserviceConfig, MicroserviceMethodConfig } from './discovery';
-import { MaybePromise, wrapMethod } from './types';
+import { Discovery } from './discovery';
+import { MicroserviceConfig, MicroserviceMethodConfig } from './types';
+import { MaybePromise } from './types/types';
+import { wrapMethodSafe } from './utils';
 
 export class Microservice {
 
   private readonly discovery: Discovery;
 
   constructor(
-    protected readonly broker: Broker,
+    private readonly broker: Broker,
     config: MicroserviceConfig,
   ) {
-    this.discovery = new Discovery(this.broker, config);
+    this.discovery = new Discovery(broker, config);
   }
 
-  public static async create(
-    broker: Broker,
-    config: MicroserviceConfig,
-  ): Promise<Microservice> {
+  public static async create(broker: Broker, config: MicroserviceConfig): Promise<Microservice> {
     const ms = new Microservice(broker, config);
-
-    await ms.init();
-
+    await ms.start();
     return ms;
   }
 
-  private initMethod<R, T>(name: string, method: MicroserviceMethodConfig<R, T>): void {
+  private startMethod<R, T>(name: string, method: MicroserviceMethodConfig<R, T>): void {
 
-    this.broker.on<unknown>(
+    this.broker.on<R>(
       this.discovery.getMethodSubject(name, method),
-      wrapMethod(this.broker, this.profileMethod(name, method.handler)),
+      wrapMethodSafe(this.broker, this.profileMethod(name, method), method),
     );
   }
 
-  public async init(): Promise<this> {
+  public async start(): Promise<this> {
 
-    await this.discovery.init();
+    await this.discovery.start();
 
     for (const [name, method] of Object.entries(this.discovery.config.methods))
-      this.initMethod(name, method);
+      this.startMethod(name, method);
 
     return this;
   }
@@ -48,19 +45,19 @@ export class Microservice {
   ): this {
 
     this.discovery.addMethod(name, method);
-    this.initMethod(name, method);
+    this.startMethod(name, method);
 
     return this;
   }
 
   profileMethod<T, R>(
     name: string,
-    method: (args: T) => MaybePromise<R>,
+    method: MicroserviceMethodConfig<T, R>,
   ): (args: T) => MaybePromise<R> {
     return (args) => {
       const start = process.hrtime.bigint();
       try {
-        const result = method(args);
+        const result = method.handler(args);
         const elapsed = process.hrtime.bigint() - start;
         this.discovery.profileMethod(
           name,

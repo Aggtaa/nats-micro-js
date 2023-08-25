@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "rootDir": ".",
+    "rootDir": "src",
     "outDir": "lib",
     "module": "commonjs",
-    "sourceMap": false,
-    "incremental": true,
+    "sourceMap": true,
     "declaration": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
@@ -15,7 +14,7 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", ".eslintrc.js"],
+  "exclude": ["node_modules", ".eslintrc.js", "lib"],
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"

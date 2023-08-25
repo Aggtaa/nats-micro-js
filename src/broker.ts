@@ -55,7 +55,7 @@ export class Broker implements Sender {
 
   private decode(msg: nats.Msg): unknown {
     const str = msg.string();
-    if (str == '')
+    if (str === '')
       return '';
 
     return this.codec.decode(msg.data);

@@ -1,76 +1,18 @@
 import moment from 'moment';
 import { isUndefined } from 'util';
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { Broker } from './broker';
-import { MaybePromise, wrapMethod } from './types';
-import { randomId } from './utils';
-import pjson from '../package.json';
+import { localConfig } from './localConfig';
+import {
+  BaseMethodData, BaseMicroserviceData, MethodProfile, MicroserviceConfig,
+  MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing, MicroserviceSchema,
+  MicroserviceStats,
+} from './types';
+import { randomId, wrapMethod } from './utils';
 
-// https://pkg.go.dev/github.com/nats-io/nats.go/micro
-
-export type MicroserviceMethodConfig<T, R> = {
-  handler: (args: T) => MaybePromise<R>,
-  subject?: string,
-  metadata?: Record<string, unknown>;
-  input?: z.ZodType<T>,
-  output?: z.ZodType<R>,
-}
-
-export type MicroserviceConfig = {
-  name: string;
-  description: string;
-  version: string;
-  metadata?: Record<string, unknown>;
-  methods: Record<string, MicroserviceMethodConfig<unknown, unknown>>,
-}
-
-type BaseResponse = {
-  id: string,
-  name: string,
-  version: string,
-  metadata: {
-    '_nats.client.created.library': string,
-    '_nats.client.created.version': string,
-  },
-}
-
-type PingResponse = BaseResponse & {
-  type: 'io.nats.micro.v1.ping_response',
-}
-
-type EndpointInfo = {
-  name: string,
-  subject: string,
-  metadata: unknown,
-}
-
-type InfoResponse = BaseResponse & {
-  type: 'io.nats.micro.v1.info_response',
-  description: string,
-  endpoints: EndpointInfo[],
-}
-
-type EndpointProfile = {
-  num_requests: number,
-  num_errors: number,
-  last_error: string,
-  processing_time: number,
-  average_processing_time: number,
-}
-
-type EndpointStats = EndpointProfile & {
-  name: string,
-  subject: string,
-}
-
-type StatsReponse = BaseResponse & {
-  type: 'io.nats.micro.v1.stats_response',
-  started: string,
-  'endpoints': EndpointStats[],
-}
-
-const emptyMethodProfile: EndpointProfile = {
+const emptyMethodProfile: MethodProfile = {
   num_requests: 0,
   num_errors: 0,
   last_error: '',
@@ -82,7 +24,7 @@ export class Discovery {
 
   public readonly id: string;
   public readonly startedAt: Date;
-  public readonly methodStats: Record<string, EndpointProfile> = {};
+  public readonly methodStats: Record<string, MethodProfile> = {};
 
   constructor(
     private readonly broker: Broker,
@@ -92,11 +34,16 @@ export class Discovery {
     this.id = randomId();
   }
 
-  public async init(): Promise<this> {
+  public async start(): Promise<this> {
 
+    const handleSchema = wrapMethod(this.broker, this.handleSchema.bind(this));
     const handleInfo = wrapMethod(this.broker, this.handleInfo.bind(this));
     const handlePing = wrapMethod(this.broker, this.handlePing.bind(this));
     const handleStats = wrapMethod(this.broker, this.handleStats.bind(this));
+
+    this.broker.on('$SRV.SCHEMA', handleSchema);
+    this.broker.on(`$SRV.SCHEMA.${this.config.name}`, handleSchema);
+    this.broker.on(`$SRV.SCHEMA.${this.config.name}.${this.id}`, handleSchema);
 
     this.broker.on('$SRV.INFO', handleInfo);
     this.broker.on(`$SRV.INFO.${this.config.name}`, handleInfo);
@@ -139,16 +86,26 @@ export class Discovery {
       Math.round(Number(method.processing_time) / method.num_requests);
   }
 
-  private makeResponse(): BaseResponse {
+  private makeMicroserviceData(): BaseMicroserviceData {
     return {
       name: this.config.name,
       id: this.id,
       version: this.config.version,
       metadata: {
-        '_nats.client.created.library': pjson.name,
-        '_nats.client.created.version': pjson.version,
+        '_nats.client.created.library': 'nats-micro',
+        '_nats.client.created.version': localConfig.version,
         ...this.config.metadata,
       },
+    };
+  }
+
+  private makeMethodData(
+    name: string,
+    method: MicroserviceMethodConfig<unknown, unknown>,
+  ): BaseMethodData {
+    return {
+      name: name,
+      subject: this.getMethodSubject(name, method),
     };
   }
 
@@ -161,37 +118,50 @@ export class Discovery {
     return `${this.config.name}.${name}`;
   }
 
-  private async handleInfo(): Promise<InfoResponse> {
+  private async handleSchema(): Promise<MicroserviceSchema> {
     return {
-      ...this.makeResponse(),
+      ...this.makeMicroserviceData(),
+      type: 'io.nats.micro.v1.schema_response',
+      endpoints: Object.entries(this.config.methods)
+        .map(([n, m]) => ({
+          ...this.makeMethodData(n, m),
+          schema: {
+            request: zodToJsonSchema(m.request ?? z.any()),
+            response: zodToJsonSchema(m.response ?? z.void()),
+          },
+        })),
+    };
+  }
+
+  private async handleInfo(): Promise<MicroserviceInfo> {
+    return {
+      ...this.makeMicroserviceData(),
       description: this.config.description,
       type: 'io.nats.micro.v1.info_response',
       endpoints: Object.entries(this.config.methods)
         .map(([n, m]) => ({
-          name: n,
-          subject: this.getMethodSubject(n, m),
+          ...this.makeMethodData(n, m),
           metadata: m.metadata ?? null,
         })),
     };
   }
 
-  private async handleStats(): Promise<StatsReponse> {
+  private async handleStats(): Promise<MicroserviceStats> {
     return {
-      ...this.makeResponse(),
+      ...this.makeMicroserviceData(),
       type: 'io.nats.micro.v1.stats_response',
       started: moment(this.startedAt).toISOString(),
       endpoints: Object.entries(this.config.methods)
         .map(([n, m]) => ({
-          name: n,
-          subject: this.getMethodSubject(n, m),
+          ...this.makeMethodData(n, m),
           ...(this.methodStats[n] ?? emptyMethodProfile),
         })),
     };
   }
 
-  private async handlePing(): Promise<PingResponse> {
+  private async handlePing(): Promise<MicroservicePing> {
     return {
-      ...this.makeResponse(),
+      ...this.makeMicroserviceData(),
       type: 'io.nats.micro.v1.ping_response',
     };
   }

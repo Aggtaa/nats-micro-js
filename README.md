@@ -9,13 +9,15 @@ This is a **typescript-first** library that provides a convinient (in 10 lines o
 Full interoperability with to-be-released nastcli v0.0.36
 that adds `nats micro info`, `nats micro stats` and `nats micro ping` commands
 
+It also support service schema discovery which is not (yet?) supported by `nats micro`
+
 ### Limitations / TODO
 
-1. No multi-reply support yet. When you send a message you will be getting exactly one response (or a timeout error)
-2. No microservice and endpoint name validation
-3. (WIP) Zod library is used for method arguments and result typing. However:
-4. No actual validation is implemented yet. 
-5. No microservice interface discovery is specified in the current version of `nats micro` protocol thus method interface cannot be discovered over NATS yet.
+1. No multi-reply support yet. 
+
+When you send a message you will be getting exactly one response (or a timeout error)
+
+2. No load balancing yet
 
 ### Usage
 
