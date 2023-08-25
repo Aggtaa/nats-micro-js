@@ -73,15 +73,15 @@ class EchoMicroservice {
   }
 }
 
-const echoMicroservise = new EchoMicroservice();
+const echoMicroservice = new EchoMicroservice();
 
 const broker = await new Broker('echo' + process.pid).connect();
-await Microservice.create(broker, echoMicroservise.config);
+await Microservice.create(broker, echoMicroservice.config);
 ```
 
 ### Decorators 
 ```ts
-@microservice({ name: 'echo', description: 'Decorated serivce' })
+@microservice({ name: 'echo', description: 'Decorated service' })
 // @microservice() // as simple as this 
 export default class EchoMicroservice {
 
@@ -98,8 +98,8 @@ export default class EchoMicroservice {
   }
 }
 
-const echoMicroservise = new EchoMicroservice();
+const echoMicroservice = new EchoMicroservice();
 
 const broker = await new Broker('echo' + process.pid).connect();
-await Microservice.createFromClass(broker, echoMicroservise);
+await Microservice.createFromClass(broker, echoMicroservice);
 ```

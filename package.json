@@ -1,6 +1,6 @@
 {
   "name": "nats-micro",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "NATS micro compatible extra-lightweight microservice library",
   "main": "lib/index.js",
   "scripts": {
