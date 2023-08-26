@@ -9,7 +9,7 @@ This is a **typescript-first** library that provides a convinient (in 10 lines o
 Full interoperability with to-be-released nastcli v0.0.36
 that adds `nats micro info`, `nats micro stats` and `nats micro ping` commands
 
-It also support service schema discovery which is not (yet?) supported by `nats micro`
+It also supports service schema discovery which is not (yet?) supported by `nats micro`
 
 ## Limitations / TODO
 
@@ -23,7 +23,7 @@ When you send a message you will be getting exactly one response (or a timeout e
 
 It is extremely simple:
 
-### Functional
+### Functional way
 ```ts
 const broker = await new Broker('echo' + process.pid).connect();
 
@@ -79,7 +79,7 @@ const broker = await new Broker('echo' + process.pid).connect();
 await Microservice.create(broker, echoMicroservice.config);
 ```
 
-### Decorators 
+### Using decorators 
 ```ts
 @microservice({ name: 'echo', description: 'Decorated service' })
 // @microservice() // as simple as this 
