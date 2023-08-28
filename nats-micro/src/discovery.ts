@@ -90,7 +90,7 @@ export class Discovery {
     return {
       name: this.config.name,
       id: this.id,
-      version: this.config.version,
+      version: this.config.version ?? '0.0.0',
       metadata: {
         '_nats.client.created.library': 'nats-micro',
         '_nats.client.created.version': localConfig.version,

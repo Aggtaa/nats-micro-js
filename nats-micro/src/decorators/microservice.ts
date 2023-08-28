@@ -27,7 +27,7 @@ export function microservice(options?: MicroserviceDecoratorOptions) {
       ...options,
       name,
       description: options?.description ?? '',
-      version: options?.version ?? '',
+      version: options?.version ?? '0.0.0',
       metadata: options?.metadata ?? {},
     };
 

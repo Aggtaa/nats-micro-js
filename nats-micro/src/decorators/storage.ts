@@ -17,9 +17,9 @@ export class Storage {
     const added: StoredMicroservice = {
       constructor,
       config: {
-        name: 'a',
+        name: '',
         description: '',
-        version: '',
+        version: '0.0.0',
         metadata: {},
         methods: {},
       },

@@ -1,6 +1,7 @@
 import errio from 'errio';
 import nanoid from 'nanoid-esm';
 import { isUndefined } from 'util';
+import { ZodError } from 'zod';
 
 import { log } from './log';
 import {
@@ -42,14 +43,30 @@ export function wrapMethodSafe<T, R>(
     try {
       let input = msg.data;
       if (method.request) {
-        input = method.request.parse(input);
+        try {
+          input = method.request.parse(input);
+        }
+        catch (err) {
+          if (err instanceof ZodError)
+            throw new Error(`Invalid request type: ${err.issues[0].message}`);
+          else
+            throw err;
+        }
       }
 
       let output: R = await callback(input);
       if (!isUndefined(output) && 'replyTo' in msg && msg.replyTo) {
 
         if (method.response) {
-          output = method.response.parse(output);
+          try {
+            output = method.response.parse(output);
+          }
+          catch (err) {
+            if (err instanceof ZodError)
+              throw new Error(`Invalid response type: ${err.issues[0].message}`);
+            else
+              throw err;
+          }
         }
 
         broker.send(
@@ -59,7 +76,16 @@ export function wrapMethodSafe<T, R>(
       }
     }
     catch (err) {
-      log.error(errio.stringify(err));
+      const error = err.message ?? errio.stringify(err);
+
+      log.error(error);
+
+      if ('replyTo' in msg && msg.replyTo) {
+        broker.send(
+          msg.replyTo,
+          { error },
+        );
+      }
       // throw err;
     }
   };

@@ -11,14 +11,14 @@ export type MethodDecoratorOptions<T, R> =
 
 export function method<
   T extends z.ZodType<any, any, any>,
-  R extends z.ZodType<any, any, any> = z.ZodVoid,
+  R extends z.ZodType<any, any, any>,
 >(options?: MethodDecoratorOptions<z.infer<T>, z.infer<R>>) {
 
   return (
     target: unknown,
     key: string | symbol,
-    descriptor: TypedPropertyDescriptor<((test: string, ...args: unknown[]) => any)>,
-  ): TypedPropertyDescriptor<((args: z.infer<T>) => Promise<z.infer<R>>)> | void => {
+    descriptor: TypedPropertyDescriptor<((request?: z.infer<T>) => any)>,
+  ): TypedPropertyDescriptor<((request?: z.infer<T>) => Promise<z.infer<R>>)> | void => {
 
     const name = options?.name ?? camelCase(String(key));
 
@@ -27,8 +27,8 @@ export function method<
     ms.config.methods[name] = {
       handler: descriptor.value,
       subject: options?.subject,
-      request: options?.request ?? z.any(),
-      response: options?.response ?? z.void(),
+      request: options?.request,
+      response: options?.response,
     };
 
     return descriptor;
