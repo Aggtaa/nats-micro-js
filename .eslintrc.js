@@ -14,7 +14,7 @@ module.exports = {
     browser: false,
     node: true,
   },
-  ignorePatterns: ['dist/**', 'lib/**'],
+  ignorePatterns: ['dist/**', 'lib/**', 'examples/**'],
   overrides: [
     {
       files: ['**/*.js'],

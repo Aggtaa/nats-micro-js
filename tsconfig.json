@@ -14,7 +14,7 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", ".eslintrc.js", "lib"],
+  "exclude": ["node_modules", ".eslintrc.js", "lib", "examples"],
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"
