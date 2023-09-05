@@ -1,6 +1,6 @@
 {
   "name": "nats-micro",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "NATS micro compatible extra-lightweight microservice library",
   "main": "lib/index.js",
   "scripts": {
@@ -28,6 +28,7 @@
   "bugs": "https://github.com/Aggtaa/nats-micro-js/issues",
   "repository": "Aggtaa/nats-micro-js",
   "dependencies": {
+    "debug-threads-ns": "^0.2.2",
     "errio": "^1.2.2",
     "fast-safe-stringify": "^2.1.1",
     "moment": "^2.29.4",

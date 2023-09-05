@@ -1,9 +1,10 @@
+import { threadContext } from 'debug-threads-ns';
 import errio from 'errio';
 import nanoid from 'nanoid-esm';
 import { isUndefined } from 'util';
 import { ZodError } from 'zod';
 
-import { log } from './log';
+import { debug } from './debug';
 import {
   MaybePromise, MessageMaybeReplyTo, MicroserviceMethodConfig, Sender,
 } from './types';
@@ -18,10 +19,16 @@ export function camelCase(s: string) {
 
 export function wrapMethod<T, R>(
   broker: Sender,
+  id: string,
+  methodName: string,
   callback: (args: T) => MaybePromise<R>,
 ): (msg: MessageMaybeReplyTo<T>) => void {
 
   return async (msg) => {
+    threadContext.init(id);
+
+    debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
+
     const output: R = await callback(msg.data);
     if (!isUndefined(output) && 'replyTo' in msg && msg.replyTo) {
 
@@ -78,7 +85,7 @@ export function wrapMethodSafe<T, R>(
     catch (err) {
       const error = err.message ?? errio.stringify(err);
 
-      log.error(error);
+      debug.error(error);
 
       if ('replyTo' in msg && msg.replyTo) {
         broker.send(

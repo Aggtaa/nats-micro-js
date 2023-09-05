@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
 import * as nats from 'nats';
 
+import { debug } from './debug';
 import { localConfig } from './localConfig';
-import { log } from './log';
 import {
   ExecOptions, MessageMaybeReplyTo, MethodSubject, SendOptions,
   Sender, Subject,
@@ -22,33 +22,33 @@ export class Broker implements Sender {
   }
 
   public async connect(): Promise<this> {
-    log.info(`loc[[BROKER]] Connecting to NATS at loc[[${localConfig.nats.serverUrl}]]`);
+    debug.broker.info(`Connecting to server at ${localConfig.nats.serverUrl}`);
     try {
-      this.connection = await nats.connect({
+    this.connection = await nats.connect({
         name: this.name,
         servers: localConfig.nats.serverUrl,
       });
       this.connectionClosedWaiter = this.connection.closed();
-      log.info('loc[[BROKER]] Connected to NATS');
+      debug.broker.info('Connected to server');
       return this;
     }
     catch (err) {
-      log.error(`loc[[BROKER]] Error connecting to NATS: ${err.toString()}`);
+      debug.broker.error(`Error connecting to server: ${err.toString()}`);
       throw err;
     }
   }
 
   public async disconnect(): Promise<void> {
-    log.info('loc[[BROKER]] Disconnecting from NATS');
+    debug.broker.info('Disconnecting from server');
     try {
       await this.connection.close();
       const err = await this.connectionClosedWaiter;
       if (err)
         throw err;
-      log.info('loc[[BROKER]] Disconnected from NATS');
+        debug.broker.info('Disconnected from server');
     }
     catch (err) {
-      log.error(`loc[[BROKER]] Error disconnecting from NATS: ${err.toString()}`);
+      debug.broker.error(`Error disconnecting from server: ${err.toString()}`);
       throw err;
     }
   }
@@ -66,9 +66,10 @@ export class Broker implements Sender {
     msg: nats.Msg,
   ): void {
     if (err) {
-      log.error(`loc[[BROKER]] Error in message on loc[[${msg.subject}]]: data[[${err}]]`);
+      debug.broker.error(`Incoming error in message on "${msg.subject}": ${JSON.stringify(err)}`);
     }
     else {
+      debug.broker.debug(`Incoming message on "${msg.subject}": ${JSON.stringify(msg.string())}`);
       try {
         this.ee.emit(
           msg.subject,
@@ -87,13 +88,13 @@ export class Broker implements Sender {
         catch {
           content = `${msg.data.byteLength} bytes`;
         }
-        log.error(`loc[[BROKER]] Error decoding message on loc[[${msg.subject}]] data[["${content}"]]`);
+        debug.broker.error(`Error decoding JSON from "${content}"`);
       }
     }
   }
 
   private async subscribe(subject: string): Promise<void> {
-    log.debug(`loc[[BROKER]] Subscribing to data[[${subject}]]`);
+    debug.broker.debug(`Subscribing to "${subject}"`);
     this.connection.subscribe(
       subject,
       {

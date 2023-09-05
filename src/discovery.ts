@@ -36,10 +36,10 @@ export class Discovery {
 
   public async start(): Promise<this> {
 
-    const handleSchema = wrapMethod(this.broker, this.handleSchema.bind(this));
-    const handleInfo = wrapMethod(this.broker, this.handleInfo.bind(this));
-    const handlePing = wrapMethod(this.broker, this.handlePing.bind(this));
-    const handleStats = wrapMethod(this.broker, this.handleStats.bind(this));
+    const handleSchema = wrapMethod(this.broker, this.id, 'handleSchema', this.handleSchema.bind(this));
+    const handleInfo = wrapMethod(this.broker, this.id, 'handleInfo', this.handleInfo.bind(this));
+    const handlePing = wrapMethod(this.broker, this.id, 'handlePing', this.handlePing.bind(this));
+    const handleStats = wrapMethod(this.broker, this.id, 'handleStats', this.handleStats.bind(this));
 
     this.broker.on('$SRV.SCHEMA', handleSchema);
     this.broker.on(`$SRV.SCHEMA.${this.config.name}`, handleSchema);

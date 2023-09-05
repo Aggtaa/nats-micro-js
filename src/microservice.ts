@@ -1,4 +1,6 @@
+import { threadContext } from 'debug-threads-ns';
 import { Broker } from './broker';
+import { debug } from './debug';
 import { storage } from './decorators/storage';
 import { Discovery } from './discovery';
 import { MicroserviceConfig, MicroserviceMethodConfig } from './types';
@@ -46,9 +48,15 @@ export class Microservice {
 
   public async start(): Promise<this> {
 
+    threadContext.init(this.discovery.id);
+
+    const cfg = this.discovery.config;
+
+    debug.ms.thread.info(`Registering microservice ${cfg.name}(${Object.keys(cfg.methods).join(',')})`);
+
     await this.discovery.start();
 
-    for (const [name, method] of Object.entries(this.discovery.config.methods))
+    for (const [name, method] of Object.entries(cfg.methods))
       this.startMethod(name, method);
 
     return this;
