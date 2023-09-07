@@ -16,6 +16,7 @@ export class Broker implements Sender {
   private connectionClosedWaiter: Promise<void | Error>;
   // eslint-disable-next-line new-cap
   private readonly codec = nats.JSONCodec();
+  private readonly subscriptions: string[] = [];
 
   // eslint-disable-next-line no-useless-constructor, no-empty-function
   constructor(public readonly name: string) {
@@ -113,7 +114,10 @@ export class Broker implements Sender {
     queue: string | undefined = undefined,
   ): void {
     const subj = this.subjectToStr(subject);
-    this.subscribe(subj, queue);
+    if (!this.subscriptions.includes(subj)) {
+      this.subscribe(subj, queue);
+      this.subscriptions.push(subj);
+    }
     this.ee.on(subj, listener);
   }
 
