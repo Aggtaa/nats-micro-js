@@ -24,7 +24,7 @@ export class Broker implements Sender {
   public async connect(): Promise<this> {
     debug.broker.info(`Connecting to server at ${localConfig.nats.serverUrl}`);
     try {
-    this.connection = await nats.connect({
+      this.connection = await nats.connect({
         name: this.name,
         servers: localConfig.nats.serverUrl,
       });
@@ -45,7 +45,7 @@ export class Broker implements Sender {
       const err = await this.connectionClosedWaiter;
       if (err)
         throw err;
-        debug.broker.info('Disconnected from server');
+      debug.broker.info('Disconnected from server');
     }
     catch (err) {
       debug.broker.error(`Error disconnecting from server: ${err.toString()}`);
@@ -93,11 +93,15 @@ export class Broker implements Sender {
     }
   }
 
-  private async subscribe(subject: string): Promise<void> {
+  private async subscribe(
+    subject: string,
+    queue: string | undefined,
+  ): Promise<void> {
     debug.broker.debug(`Subscribing to "${subject}"`);
     this.connection.subscribe(
       subject,
       {
+        queue,
         callback: this.handleMessageFromSubscription.bind(this),
       },
     );
@@ -106,9 +110,10 @@ export class Broker implements Sender {
   public on<T>(
     subject: Subject,
     listener: (data: MessageMaybeReplyTo<T>) => void,
+    queue: string | undefined = undefined,
   ): void {
     const subj = this.subjectToStr(subject);
-    this.subscribe(subj);
+    this.subscribe(subj, queue);
     this.ee.on(subj, listener);
   }
 
@@ -158,8 +163,12 @@ export class Broker implements Sender {
     if (typeof (subject) === 'string')
       return subject;
 
-    if ('method' in subject)
+    if ('method' in subject) {
+      if ('instance' in subject)
+        return `${subject.microservice}.${subject.instance}.${subject.method}`;
+
       return `${subject.microservice}.${subject.method}`;
+    }
 
     throw new Error('Unknown subject format');
   }

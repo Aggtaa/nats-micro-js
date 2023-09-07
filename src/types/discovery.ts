@@ -10,6 +10,8 @@ export type MicroserviceMethodConfig<T, R> = {
   metadata?: Record<string, unknown>;
   request?: z.ZodType<T>,
   response?: z.ZodType<R>,
+  unbalanced?: boolean,
+  local?: boolean,
 }
 
 export type MicroserviceConfig = {

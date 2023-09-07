@@ -14,10 +14,9 @@ It also supports service schema discovery which is not (yet?) supported by `nats
 ## Limitations / TODO
 
 1. No multi-reply support yet. 
-
 When you send a message you will be getting exactly one response (or a timeout error)
 
-2. No load balancing yet
+2. Automatica typing and validation is inclomplete yet
 
 ## Usage
 
@@ -103,3 +102,45 @@ const echoMicroservice = new EchoMicroservice();
 const broker = await new Broker('echo' + process.pid).connect();
 await Microservice.createFromClass(broker, echoMicroservice);
 ```
+
+## Load balancing
+
+When you start a number of number of instances of the same microservice, normally, NATS will automatically balance any calls to the a method across all the microservice instances.
+
+However, you can control his behavior:
+```ts
+@microservice()
+export default class BalancedMicroservice {
+
+  @method()
+  public async balanced(): Promise<string> {
+    return 'I will answer this if everyone else is slower than me';
+  }
+
+  @method({ unbalanced: true })
+  public async all(): Promise<string> {
+    return 'I will answer this no matter what. Get ready for multiple answers';
+  }
+
+  @method({ local: true })
+  public async local(): Promise<string> {
+    return 'You can reach me only at my local subject, no load balancing';
+  }
+}
+```
+
+### Balanced behavior
+If you call `balanced.balanced`, having N instances of `balanced` microservice, every one of them will receive and respond to every Nth call on average. The logic of load balancing is based on NATS internal "queue groups" functionality ans is described in its documentation.
+
+### Unbalanced behavior
+If you send a call to `balanced.all` however, it will be received and responded by **every** `balanced` microservice that has the `all` method.
+
+This is useful for broadcast event buses, when you want all microservices to receive an even no matter what and possibly respond to it.
+
+Having this utilized be ready to receiving multiple responses to a request.
+
+### Local endpoint behavior
+
+As for the `balanced.local`, there is no such subject any microservice is subcribed to. Instead instance  `ID` of a microservice `balanced` will listen to `balanced.<microservice ID>.local` only. You will need to use `broker.exec(..., { microservice: 'balanced', instance: '<microservice ID>', method: 'local' }, ...)` for that.
+
+This feature is useful for scenarios like when you have multiple instances of the same microservice, want to discover their IDs and then address specific ones of them.

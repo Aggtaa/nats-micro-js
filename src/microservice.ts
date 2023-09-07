@@ -1,4 +1,5 @@
 import { threadContext } from 'debug-threads-ns';
+
 import { Broker } from './broker';
 import { debug } from './debug';
 import { storage } from './decorators/storage';
@@ -39,11 +40,28 @@ export class Microservice {
   }
 
   private startMethod<R, T>(name: string, method: MicroserviceMethodConfig<R, T>): void {
-
-    this.broker.on<R>(
-      this.discovery.getMethodSubject(name, method),
-      wrapMethodSafe(this.broker, this.profileMethod(name, method), method),
+    const methodWrap = wrapMethodSafe(
+      this.broker,
+      this.discovery.id,
+      name,
+      this.profileMethod(name, method),
+      method,
     );
+
+    if (method.local) {
+      this.broker.on<R>(
+        this.discovery.getMethodSubject(name, method, true),
+        methodWrap,
+      );
+    }
+    else {
+      this.broker.on<R>(
+        this.discovery.getMethodSubject(name, method),
+        methodWrap,
+        method.unbalanced ? undefined : 'q',
+      );
+    }
+
   }
 
   public async start(): Promise<this> {

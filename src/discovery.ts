@@ -112,9 +112,12 @@ export class Discovery {
   public getMethodSubject(
     name: string,
     method: MicroserviceMethodConfig<unknown, unknown>,
+    local: boolean = false,
   ): string {
     if (method.subject)
       return method.subject;
+    if (local)
+      return `${this.config.name}.${this.id}.${name}`;
     return `${this.config.name}.${name}`;
   }
 
@@ -134,15 +137,24 @@ export class Discovery {
   }
 
   private async handleInfo(): Promise<MicroserviceInfo> {
+
     return {
       ...this.makeMicroserviceData(),
       description: this.config.description,
       type: 'io.nats.micro.v1.info_response',
       endpoints: Object.entries(this.config.methods)
-        .map(([n, m]) => ({
-          ...this.makeMethodData(n, m),
-          metadata: m.metadata ?? null,
-        })),
+        .map(([n, m]) => {
+          const metadata = { ...m.metadata };
+          if (m.unbalanced)
+            metadata['com.optimacros.nats.micro.v1.method.unbalanced'] = 'true';
+          if (m.local)
+            metadata['com.optimacros.nats.micro.v1.method.local'] = 'true';
+
+          return {
+            ...this.makeMethodData(n, m),
+            metadata, // TODO maybe we should send NULL instead of empty object
+          };
+        }),
     };
   }
 

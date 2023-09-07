@@ -1,7 +1,8 @@
 import { PartialBy } from './types';
 
 export type MicroserviceSubject = {
-  microservice: string; // undefined for local
+  microservice: string;
+  instance?: string; // for calls to "local" methods
 }
 
 export type RawSubject = string;

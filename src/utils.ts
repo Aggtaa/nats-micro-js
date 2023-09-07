@@ -42,11 +42,15 @@ export function wrapMethod<T, R>(
 
 export function wrapMethodSafe<T, R>(
   broker: Sender,
+  id: string,
+  methodName: string,
   callback: (args: T) => MaybePromise<R>,
   method: MicroserviceMethodConfig<T, R>,
 ): (msg: MessageMaybeReplyTo<T>) => void {
 
   return async (msg) => {
+    threadContext.init(id);
+
     try {
       let input = msg.data;
       if (method.request) {
@@ -60,6 +64,8 @@ export function wrapMethodSafe<T, R>(
             throw err;
         }
       }
+
+      debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
 
       let output: R = await callback(input);
       if (!isUndefined(output) && 'replyTo' in msg && msg.replyTo) {

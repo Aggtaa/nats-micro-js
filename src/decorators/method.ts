@@ -29,6 +29,8 @@ export function method<
       subject: options?.subject,
       request: options?.request,
       response: options?.response,
+      unbalanced: options?.unbalanced,
+      local: options?.local,
     };
 
     return descriptor;
