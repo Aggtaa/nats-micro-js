@@ -1,9 +1,9 @@
 import EventEmitter from 'events';
 
 import { Broker } from './broker.js';
-import { MicroserviceInfo, RegisterMicroserviceRequest, RequestOptions } from './types/index.js';
-import { wrapMethod } from './utils.js';
 import { debug } from './debug.js';
+import { MicroserviceInfo, RegisterMicroserviceRequest } from './types/index.js';
+import { wrapMethod } from './utils.js';
 
 export type MonitorDiscoveryOptions = {
   doNotClear: boolean;
