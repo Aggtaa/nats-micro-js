@@ -3,14 +3,14 @@ import { isUndefined } from 'util';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
-import { Broker } from './broker';
-import { localConfig } from './localConfig';
+import { Broker } from '../broker.js';
+import { localConfig } from '../localConfig.js';
 import {
   BaseMethodData, BaseMicroserviceData, MethodProfile, MicroserviceConfig,
   MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing, MicroserviceSchema,
   MicroserviceStats,
-} from './types';
-import { randomId, wrapMethod } from './utils';
+} from '../types/index.js';
+import { randomId, wrapMethod } from '../utils.js';
 
 const emptyMethodProfile: MethodProfile = {
   num_requests: 0,
@@ -109,9 +109,9 @@ export class Discovery {
     };
   }
 
-  public getMethodSubject(
+  public getMethodSubject<R, T>(
     name: string,
-    method: MicroserviceMethodConfig<unknown, unknown>,
+    method: MicroserviceMethodConfig<R, T>,
     local: boolean = false,
   ): string {
     if (method.subject)

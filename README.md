@@ -110,7 +110,7 @@ When you start a number of number of instances of the same microservice, normall
 However, you can control his behavior:
 ```ts
 @microservice()
-export default class BalancedMicroservice {
+export default class BalanceDemoMicroservice {
 
   @method()
   public async balanced(): Promise<string> {
@@ -129,11 +129,11 @@ export default class BalancedMicroservice {
 }
 ```
 
-### Balanced behavior
-If you call `balanced.balanced`, having N instances of `balanced` microservice, every one of them will receive and respond to every Nth call on average. The logic of load balancing is based on NATS internal "queue groups" functionality ans is described in its documentation.
+### Balanced behavior (default)
+If you call `balance-demo.balanced`, having N instances of `balance-demo` microservice, every one of them will receive and respond to every Nth call on average. The logic of load balancing is based on NATS internal "queue groups" functionality ans is described in its documentation.
 
 ### Unbalanced behavior
-If you send a call to `balanced.all` however, it will be received and responded by **every** `balanced` microservice that has the `all` method.
+If you send a call to `balance-demo.all` however, it will be received and responded by **every** `balance-demo` microservice that has the `all` method.
 
 This is useful for broadcast event buses, when you want all microservices to receive an even no matter what and possibly respond to it.
 
@@ -141,6 +141,38 @@ Having this utilized be ready to receiving multiple responses to a request.
 
 ### Local endpoint behavior
 
-As for the `balanced.local`, there is no such subject any microservice is subcribed to. Instead instance  `ID` of a microservice `balanced` will listen to `balanced.<microservice ID>.local` only. You will need to use `broker.exec(..., { microservice: 'balanced', instance: '<microservice ID>', method: 'local' }, ...)` for that.
+As for the `balance-demo.local`, there is no such subject any microservice is subcribed to. Instead instance `ID` of the `balance-demo` microservice will listen to `balance-demo.<microservice ID>.local` only. You will need to use `broker.request(..., { microservice: 'balance-demo', instance: '<microservice ID>', method: 'local' }, ...)` for that.
 
 This feature is useful for scenarios like when you have multiple instances of the same microservice, want to discover their IDs and then address specific ones of them.
+
+## Microservice discovery and monitoring
+
+While you can use `nats micro` native way to discover currently running microservices by sending messages to subject "$SRV.INFO" and collecting their responses, nats-micro library provides an additional convenient way of doing this.
+
+Every nats-micro microservice will announce itself at "$SRV.REGISTER" subject, which you can listen either manually subscribing to the subject or using `Monitor` class.
+
+```ts
+// create a new microservice monitor
+// broker must be already connected by this moment
+const monitor = new Monitor(broker);
+
+// receive a message whenever a new service appears online or when you (re)discover it manually
+monitor.on('info', (service) => console.log); 
+
+// manually discover all running microservices in background, giving them 10 seconds to respond
+monitor.discover(10000); 
+// or wait for the 10 seconds in foreground
+await monitor.discover(10000); 
+
+// access the list of services collected
+const servicesRunning = monitor.services; 
+
+// note that discover() will abandon all previously collected services
+// unless you instuct it explicitly
+monitor.discover(10000, { doNotClear: true });
+
+// start automatic discovery with 60 seconds interval
+monitor.startPeriodicDiscovery(60000, 10000); 
+// and then stop it
+monitor.stopPeriodicDiscovery(); 
+```

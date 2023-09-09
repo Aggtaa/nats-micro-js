@@ -1,19 +1,19 @@
 import { EventEmitter } from 'events';
 import * as nats from 'nats';
 
-import { debug } from './debug';
-import { localConfig } from './localConfig';
+import { debug } from './debug.js';
+import { localConfig } from './localConfig.js';
 import {
-  ExecOptions, MessageMaybeReplyTo, MethodSubject, SendOptions,
-  Sender, Subject,
-} from './types';
-import { randomId } from './utils';
+  RequestOptions, MessageMaybeReplyTo, SendOptions,
+  Sender, Subject, RequestManyOptions,
+} from './types/index.js';
+import { errorToString, randomId } from './utils.js';
 
 export class Broker implements Sender {
 
   private readonly ee = new EventEmitter();
-  private connection: nats.NatsConnection;
-  private connectionClosedWaiter: Promise<void | Error>;
+  private connection: nats.NatsConnection | undefined;
+  private connectionClosedWaiter: Promise<void | Error> | undefined;
   // eslint-disable-next-line new-cap
   private readonly codec = nats.JSONCodec();
   private readonly subscriptions: string[] = [];
@@ -34,7 +34,7 @@ export class Broker implements Sender {
       return this;
     }
     catch (err) {
-      debug.broker.error(`Error connecting to server: ${err.toString()}`);
+      debug.broker.error(`Error connecting to server: ${errorToString(err)}`);
       throw err;
     }
   }
@@ -42,6 +42,10 @@ export class Broker implements Sender {
   public async disconnect(): Promise<void> {
     debug.broker.info('Disconnecting from server');
     try {
+      if (!this.connection) {
+        debug.broker.info('Not connected to server');
+        return;
+      }
       await this.connection.close();
       const err = await this.connectionClosedWaiter;
       if (err)
@@ -49,7 +53,7 @@ export class Broker implements Sender {
       debug.broker.info('Disconnected from server');
     }
     catch (err) {
-      debug.broker.error(`Error disconnecting from server: ${err.toString()}`);
+      debug.broker.error(`Error disconnecting from server: ${errorToString(err)}`);
       throw err;
     }
   }
@@ -98,6 +102,9 @@ export class Broker implements Sender {
     subject: string,
     queue: string | undefined,
   ): Promise<void> {
+    if (!this.connection)
+      throw new Error('Not connected');
+
     debug.broker.debug(`Subscribing to "${subject}"`);
     this.connection.subscribe(
       subject,
@@ -126,6 +133,8 @@ export class Broker implements Sender {
     data: T,
     options?: SendOptions,
   ): Promise<void> {
+    if (!this.connection)
+      throw new Error('Not connected');
 
     const headers = nats.headers();
     if (options?.headers)
@@ -145,19 +154,66 @@ export class Broker implements Sender {
     );
   }
 
-  public async exec<T, R>(
-    microservice: string,
-    subject: MethodSubject,
+  public async* requestMany<T, R>(
+    subject: Subject,
     data: T,
-    options?: ExecOptions,
+    options?: RequestManyOptions,
+  ): AsyncIterableIterator<R> {
+    if (!this.connection)
+      throw new Error('Not connected');
+
+    const timeout = options?.timeout ?? 30000;
+
+    try {
+      const responses = await this.connection.requestMany(
+        this.subjectToStr(subject),
+        this.codec.encode(data),
+        {
+          noMux: true,
+          strategy: (options?.limit ?? 0) < 0
+            ? nats.RequestStrategy.Timer
+            : nats.RequestStrategy.Count,
+          maxMessages: (options?.limit ?? 0) < 0
+            ? undefined
+            : options?.limit,
+          maxWait: timeout,
+          // reply: `_INBOX.${microservice}.${randomId()}`,
+          // timeout,
+        },
+      );
+
+      const iterator = responses[Symbol.asyncIterator]();
+      let result = await iterator.next();
+      while (!result.done) {
+        yield this.codec.decode(result.value.data) as R;
+        result = await iterator.next();
+      }
+    }
+    catch (err) {
+      if (typeof (err) === 'object' && err && 'code' in err && err.code === 503)
+        return; // NATS no responders available
+
+      throw err;
+    }
+  }
+
+  public async request<T, R>(
+    subject: Subject,
+    data: T,
+    options?: RequestOptions,
   ): Promise<R> {
+    if (!this.connection)
+      throw new Error('Not connected');
+
+    const timeout = options?.timeout ?? 30000;
+
     const res = await this.connection.request(
       this.subjectToStr(subject),
       this.codec.encode(data),
       {
         noMux: true,
-        reply: `_INBOX.${microservice}.${randomId()}`,
-        timeout: options?.timeout ?? 30000,
+        reply: `_INBOX.${randomId()}`,
+        timeout,
       },
     );
     return this.codec.decode(res.data) as R;

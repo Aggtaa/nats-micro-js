@@ -1,9 +1,12 @@
-export * from './types';
+export * from './types/index.js';
 
-export * from './broker';
-export * from './microservice';
-export * from './discovery';
+export * from './broker.js';
+export * from './monitor.js';
+export * from './microservice/microservice.js';
+export * from './microservice/discovery.js';
 
-export * from './decorators';
+export * from './decorators/index.js';
+
+export { wrapMethod, wrapMethodSafe } from './utils.js';
 
 export * as z from 'zod';

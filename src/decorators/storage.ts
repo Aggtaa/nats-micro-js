@@ -1,4 +1,4 @@
-import { MicroserviceConfig } from '../types';
+import { MicroserviceConfig } from '../types/index.js';
 
 export type StoredMicroservice = {
   constructor: unknown;

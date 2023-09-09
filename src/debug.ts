@@ -1,10 +1,11 @@
-import createDebugger, { ExtendedDebug } from 'debug-threads-ns';
+import debugThreadsNs from 'debug-threads-ns';
 
-type Debug = ExtendedDebug & {
-  broker: ExtendedDebug;
-  ms: ExtendedDebug & {
-    thread: ExtendedDebug;
+type Debug = debugThreadsNs.ExtendedDebug & {
+  broker: debugThreadsNs.ExtendedDebug;
+  monitor: debugThreadsNs.ExtendedDebug;
+  ms: debugThreadsNs.ExtendedDebug & {
+    thread: debugThreadsNs.ExtendedDebug;
   }
 }
 
-export const debug: Debug = createDebugger('nats-micro');
+export const debug: Debug = debugThreadsNs.default('nats-micro');

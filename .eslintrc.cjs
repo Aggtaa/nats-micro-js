@@ -192,6 +192,7 @@ module.exports = {
     'implicit-arrow-linebreak': 'off',
     'brace-style': ['error', 'stroustrup', { allowSingleLine: false }],
     'func-names': 'off',
+    'no-useless-constructor': 'off',
     'prefer-arrow-callback': 'off',
     'no-return-assign': 'off',
     'no-sequences': 'off',

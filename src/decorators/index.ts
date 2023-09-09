@@ -1,2 +1,2 @@
-export * from './method';
-export * from './microservice';
+export * from './method.js';
+export * from './microservice.js';

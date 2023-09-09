@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-import { MaybePromise } from './types';
+import { MaybePromise } from './types.js';
 
 // https://pkg.go.dev/github.com/nats-io/nats.go/micro
 
 export type MicroserviceMethodConfig<T, R> = {
-  handler: (args: T) => MaybePromise<R>,
+  handler: (request: T | undefined) => MaybePromise<R>,
   subject?: string,
   metadata?: Record<string, unknown>;
   request?: z.ZodType<T>,
@@ -19,7 +19,8 @@ export type MicroserviceConfig = {
   description: string;
   version: string;
   metadata?: Record<string, unknown>;
-  methods: Record<string, MicroserviceMethodConfig<unknown, unknown>>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  methods: Record<string, MicroserviceMethodConfig<any, any>>,
 }
 
 export type BaseMicroserviceData = {

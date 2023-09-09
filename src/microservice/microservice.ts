@@ -1,12 +1,12 @@
 import { threadContext } from 'debug-threads-ns';
 
-import { Broker } from './broker';
-import { debug } from './debug';
-import { storage } from './decorators/storage';
-import { Discovery } from './discovery';
-import { MicroserviceConfig, MicroserviceMethodConfig } from './types';
-import { MaybePromise } from './types/types';
-import { wrapMethodSafe } from './utils';
+import { Discovery } from './discovery.js';
+import { Broker } from '../broker.js';
+import { debug } from '../debug.js';
+import { storage } from '../decorators/storage.js';
+import { MicroserviceConfig, MicroserviceMethodConfig } from '../types/index.js';
+import { MaybePromise } from '../types/types.js';
+import { errorToString, wrapMethodSafe } from '../utils.js';
 
 export class Microservice {
 
@@ -39,7 +39,10 @@ export class Microservice {
     return Microservice.create(broker, config);
   }
 
-  private startMethod<R, T>(name: string, method: MicroserviceMethodConfig<R, T>): void {
+  private startMethod<R, T>(
+    name: string,
+    method: MicroserviceMethodConfig<R, T>,
+  ): void {
     const methodWrap = wrapMethodSafe(
       this.broker,
       this.discovery.id,
@@ -111,7 +114,7 @@ export class Microservice {
         const elapsed = process.hrtime.bigint() - start;
         this.discovery.profileMethod(
           name,
-          err.toString(),
+          errorToString(err),
           Number(elapsed),
         );
         throw err;

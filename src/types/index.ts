@@ -1,4 +1,5 @@
-export * from './types';
+export * from './types.js';
+export * from './schemas.js';
 
-export * from './broker';
-export * from './discovery';
+export * from './broker.js';
+export * from './discovery.js';

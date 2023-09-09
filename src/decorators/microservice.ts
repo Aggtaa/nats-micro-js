@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { storage } from './storage';
-import { MicroserviceConfig } from '../types';
-import { camelCase } from '../utils';
+import { storage } from './storage.js';
+import { MicroserviceConfig } from '../types/index.js';
+import { camelCase } from '../utils.js';
 
 // export function microservice() {
 //   console.log('microservice(): factory evaluated');

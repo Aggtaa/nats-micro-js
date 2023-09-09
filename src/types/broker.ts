@@ -1,4 +1,4 @@
-import { PartialBy } from './types';
+import { PartialBy } from './types.js';
 
 export type MicroserviceSubject = {
   microservice: string;
@@ -24,8 +24,11 @@ export type MessageReplyTo<T> = Message<T> & {
 
 export type MessageMaybeReplyTo<T> = PartialBy<MessageReplyTo<T>, 'replyTo'>;
 
-export type ExecOptions = {
-  timeout: number;
+export type RequestOptions = {
+  timeout?: number;
+}
+export type RequestManyOptions = RequestOptions & {
+  limit?: number, // -1 for unlimited
 }
 
 export type SendOptions = Omit<MessageMaybeReplyTo<never>, 'data'>;

@@ -1,22 +1,23 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "ES6",
     "rootDir": "src",
     "outDir": "lib",
-    "module": "commonjs",
+    "module": "ES6",
     "sourceMap": true,
-    "declaration": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "resolveJsonModule": true,
     "lib": [ "es5", "es6", "es2020", "DOM", "DOM.Iterable" ],
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "moduleResolution": "Node16",
+    "noEmit": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", ".eslintrc.js", "lib", "examples"],
   "ts-node": {
     "esm": true,
-    "experimentalSpecifierResolution": "node"
+    "experimentalSpecifierResolution": "node",
   }
 }

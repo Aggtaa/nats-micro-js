@@ -1,9 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import pjson from '../package.json';
-
 export const localConfig = {
-  version: pjson.version,
+  version: '0.11.0',
   nats: {
     serverUrl: process.env.NATS_URI || 'nats://localhost:4222',
   },

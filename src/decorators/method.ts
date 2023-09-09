@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
 
-import { storage } from './storage';
-import { MicroserviceMethodConfig, PartialBy } from '../types';
-import { camelCase } from '../utils';
+import { storage } from './storage.js';
+import { MicroserviceMethodConfig, PartialBy } from '../types/index.js';
+import { camelCase } from '../utils.js';
 
 export type MethodDecoratorOptions<T, R> =
   { name?: string } &
@@ -21,6 +21,9 @@ export function method<
   ): TypedPropertyDescriptor<((request?: z.infer<T>) => Promise<z.infer<R>>)> | void => {
 
     const name = options?.name ?? camelCase(String(key));
+
+    if (!descriptor.value)
+      throw new Error('Use method decorators only on class methods');
 
     const ms = storage.ensureAdded(target);
 

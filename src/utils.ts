@@ -1,13 +1,12 @@
 import { threadContext } from 'debug-threads-ns';
-import errio from 'errio';
-import nanoid from 'nanoid-esm';
+import { nanoid } from 'nanoid';
 import { isUndefined } from 'util';
 import { ZodError } from 'zod';
 
-import { debug } from './debug';
+import { debug } from './debug.js';
 import {
   MaybePromise, MessageMaybeReplyTo, MicroserviceMethodConfig, Sender,
-} from './types';
+} from './types/index.js';
 
 export function randomId(): string {
   return nanoid(16);
@@ -15,6 +14,14 @@ export function randomId(): string {
 
 export function camelCase(s: string) {
   return s.replace(/(?<=.)([A-Z])/g, '-$1').toLowerCase();
+}
+
+export function errorToString(error: unknown): string {
+  if (typeof error === 'object' && error) {
+    return 'message' in error ? String(error.message) : String(error);
+  }
+
+  return String(error);
 }
 
 export function wrapMethod<T, R>(
@@ -88,8 +95,8 @@ export function wrapMethodSafe<T, R>(
         );
       }
     }
-    catch (err) {
-      const error = err.message ?? errio.stringify(err);
+    catch (err: unknown) {
+      const error = errorToString(err);
 
       debug.error(error);
 

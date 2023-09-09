@@ -1,14 +1,17 @@
 {
   "name": "nats-micro",
-  "version": "0.9.0",
+  "version": "0.11.0",
   "description": "NATS micro compatible extra-lightweight microservice library",
-  "main": "lib/index.js",
+  "main": "lib/esm/index.js",
   "scripts": {
-    "build": "rm -rf lib/* && tsc",
+    "compile": "tsc --build ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
+    "build:clean": "rm -rf lib/*", 
+    "build": "npm run build:clean && npm run compile",
     "prepublishOnly": "npm run test && npm run build",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "echo 'No tests yet'"
   },
+  "type": "module",
   "keywords": [
     "nats",
     "queue",
@@ -22,6 +25,14 @@
     "emit",
     "event"
   ],
+   "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "require": "./lib/cjs/index.js",
+      "import": "./lib/esm/index.js",
+      "default": "./lib/esm/index.js"
+    }
+  },
   "author": "Anton Zykov <npm@ormo.cc>",
   "license": "ISC",
   "homepage": "https://github.com/Aggtaa/nats-micro-js",
@@ -32,7 +43,7 @@
     "errio": "^1.2.2",
     "fast-safe-stringify": "^2.1.1",
     "moment": "^2.29.4",
-    "nanoid-esm": "^2.1.0-esm.4",
+    "nanoid": "^4.0.2",
     "nats": "^2.16.0",
     "zod": "^3.22.2",
     "zod-to-json-schema": "^3.21.4"
