@@ -6,17 +6,14 @@ A convenient microservice library based on NATS and compatible with nats-go micr
 
 This is a **typescript-first** library that provides a convinient (in 10 lines of code or less!) way to write **microservises** with out of the box **auto discovery**, **observability** and **load balancing**.
 
-Full interoperability with to-be-released nastcli v0.0.36
-that adds `nats micro info`, `nats micro stats` and `nats micro ping` commands
+Full interoperability with to-be-released nastcli v0.0.36 that adds `nats micro info`, `nats micro stats` and `nats micro ping` commands
 
 It also supports service schema discovery which is not (yet?) supported by `nats micro`
 
 ## Limitations / TODO
 
-1. No multi-reply support yet. 
-When you send a message you will be getting exactly one response (or a timeout error)
-
-2. Automatica typing and validation is inclomplete yet
+1. Automatic type schemas and validation is inclomplete yet
+2. No message headers support yet 
 
 ## Usage
 
@@ -147,19 +144,23 @@ This feature is useful for scenarios like when you have multiple instances of th
 
 ## Microservice discovery and monitoring
 
-While you can use `nats micro` native way to discover currently running microservices by sending messages to subject "$SRV.INFO" and collecting their responses, nats-micro library provides an additional convenient way of doing this.
+While you can use NATS native way to discover currently running microservices by sending messages to subject "$SRV.INFO" and collecting their responses, `nats-micro` library provides an additional convenient way of doing this.
 
-Every nats-micro microservice will announce itself at "$SRV.REGISTER" subject, which you can listen either manually subscribing to the subject or using `Monitor` class.
+Every nats-micro microservice will announce itself at "$SRV.REG" subject, which you can listen either manually subscribing to the subject or using `Monitor` class.
 
 ```ts
 // create a new microservice monitor
 // broker must be already connected by this moment
 const monitor = new Monitor(broker);
 
-// receive a message whenever a new service appears online or when you (re)discover it manually
-monitor.on('info', (service) => console.log); 
+// receive an event whenever a new service appears online
+// or when you (re)discover it manually
+monitor.on('added', (service) => console.log); 
+// receive an event whenever the list of services changes
+monitor.on('change', (services) => console.log); 
 
-// manually discover all running microservices in background, giving them 10 seconds to respond
+// manually discover all running microservices in background, 
+// giving them 10 seconds to respond
 monitor.discover(10000); 
 // or wait for the 10 seconds in foreground
 await monitor.discover(10000); 
@@ -176,3 +177,22 @@ monitor.startPeriodicDiscovery(60000, 10000);
 // and then stop it
 monitor.stopPeriodicDiscovery(); 
 ```
+
+## Microservice registration and deregistration
+
+Using `Monitor` you can not only watch for microservices coming online, but also for disconnecting ones.
+
+For this you need a NATS server with system account configured and create two separate connections from your code: one for a usual user and one for a system user:
+
+```ts
+// both brokers must be already connected by this moment
+const monitor = new Monitor(userBroker, systemBroker);
+
+// in addition to 'change' and 'added' events 
+// you can watch for microservices removed
+monitor.on('removed', (service) => console.log); 
+```
+
+This code will give `Monitor` an ability to subscribe to "$SYS.ACCOUNT.*.DISCONNECT" subject and watch connections going offline. 
+
+As every microservice created with `nats-micro` has a `_nats.client.id` value in its metadata, this allows `Monitor` to associate microservices with NATS connections and understand if they went offline when their parent broker is disconnects for whatever reason.

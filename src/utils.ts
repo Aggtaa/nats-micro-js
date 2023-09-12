@@ -26,17 +26,14 @@ export function errorToString(error: unknown): string {
 
 export function wrapMethod<T, R>(
   broker: Sender,
-  id: string,
+  callback: (args: T, subject: string) => MaybePromise<R>,
   methodName: string,
-  callback: (args: T) => MaybePromise<R>,
-): (msg: MessageMaybeReplyTo<T>) => void {
+): (msg: MessageMaybeReplyTo<T>, subject: string) => void {
 
-  return async (msg) => {
-    threadContext.init(id);
-
+  return async (msg, subject) => {
     debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
 
-    const output: R = await callback(msg.data);
+    const output: R = await callback(msg.data, subject);
     if (!isUndefined(output) && 'replyTo' in msg && msg.replyTo) {
 
       broker.send(
@@ -49,15 +46,12 @@ export function wrapMethod<T, R>(
 
 export function wrapMethodSafe<T, R>(
   broker: Sender,
-  id: string,
+  callback: (args: T, subject: string) => MaybePromise<R>,
   methodName: string,
-  callback: (args: T) => MaybePromise<R>,
   method: MicroserviceMethodConfig<T, R>,
-): (msg: MessageMaybeReplyTo<T>) => void {
+): (msg: MessageMaybeReplyTo<T>, subject: string) => void {
 
-  return async (msg) => {
-    threadContext.init(id);
-
+  return async (msg, subject) => {
     try {
       let input = msg.data;
       if (method.request) {
@@ -74,7 +68,7 @@ export function wrapMethodSafe<T, R>(
 
       debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
 
-      let output: R = await callback(input);
+      let output: R = await callback(input, subject);
       if (!isUndefined(output) && 'replyTo' in msg && msg.replyTo) {
 
         if (method.response) {
@@ -109,4 +103,9 @@ export function wrapMethodSafe<T, R>(
       // throw err;
     }
   };
+}
+
+export function wrapThread<T extends (...args: any[]) => any>(threadId: string, callback: T): T {
+  threadContext.init(threadId);
+  return callback;
 }

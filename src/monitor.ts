@@ -2,8 +2,8 @@ import EventEmitter from 'events';
 
 import { Broker } from './broker.js';
 import { debug } from './debug.js';
-import { MicroserviceInfo, RegisterMicroserviceRequest } from './types/index.js';
-import { wrapMethod } from './utils.js';
+import { Message, MicroserviceInfo, MicroserviceRegistration, MicroserviceRegistrationSubject } from './types/index.js';
+import { wrapMethod, wrapThread } from './utils.js';
 
 export type MonitorDiscoveryOptions = {
   doNotClear: boolean;
@@ -14,34 +14,75 @@ export type DiscoveredMicroservice = MicroserviceInfo & {
   lastFoundAt: Date;
 }
 
+type UserConnectEvent = {
+  client: {
+    id: number;
+    acc: string;
+  }
+}
+
+type UserDisconnectEvent = UserConnectEvent;
+
 export class Monitor extends EventEmitter {
 
   public readonly services: DiscoveredMicroservice[] = [];
   private discoveryInterval: NodeJS.Timer | undefined;
 
-  constructor(private readonly broker: Broker) {
+  constructor(
+    private readonly broker: Broker,
+    systemBroker?: Broker,
+  ) {
     super();
 
-    const handleServiceStatus = wrapMethod(this.broker, 'monitor', 'handleSchema', this.handleServiceStatus.bind(this));
-    broker.on('$EVT.REGISTER', handleServiceStatus);
+    const handleServiceRegistration = wrapMethod(this.broker, wrapThread('monitor', this.handleServiceRegistration.bind(this)), 'handleServiceStatus');
+    broker.on(MicroserviceRegistrationSubject, handleServiceRegistration);
+
+    if (systemBroker)
+      systemBroker.on('$SYS.ACCOUNT.*.DISCONNECT', this.handleAccountDisconnect.bind(this));
 
     this.discover(30000); // clear cache and do discovery in background
   }
 
-  private handleServiceStatus(data: RegisterMicroserviceRequest): void {
+  private handleServiceRegistration(data: MicroserviceRegistration): void {
     this.saveService(data.info);
+  }
+
+  private async handleAccountDisconnect(msg: Message<UserDisconnectEvent>): Promise<void> {
+    const clientId = msg.data.client.id;
+
+    let count = 0;
+    let idx = 0;
+    while (idx < this.services.length) {
+      const service = this.services[idx];
+
+      if (this.getServiceClientId(service) === clientId) {
+        const removed = this.services.splice(idx, 1);
+        count++;
+        this.emit('removed', removed[0]);
+      }
+      else
+        idx++;
+    };
+
+    debug.monitor.info(`Client ${clientId} disconnected, removing ${count} microservices`);
+
+    this.emit('change', this.services);
+  }
+
+  private getServiceClientId(service: MicroserviceInfo): number | undefined {
+    return service.metadata['_nats.client.id'];
   }
 
   private saveService(service: MicroserviceInfo): void {
     const idx = this.services.findIndex((svc) => svc.id === service.id);
 
-    debug.monitor.info(`Found ${idx >= 0 ? '' : 'new '}microservice ${service.name}.${service.id}`);
+    debug.monitor.info(`Found ${idx >= 0 ? '' : 'new '}microservice ${service.name}.${service.id} on client ${this.getServiceClientId(service)}`);
 
     if (idx >= 0) {
       this.services[idx] = {
         ...this.services[idx],
-        lastFoundAt: new Date(),
         ...service,
+        lastFoundAt: new Date(),
       };
     }
     else
@@ -51,7 +92,8 @@ export class Monitor extends EventEmitter {
         ...service,
       });
 
-    this.emit('info', service);
+    this.emit('added', service);
+    this.emit('change', this.services);
   }
 
   public async discover(
@@ -64,25 +106,17 @@ export class Monitor extends EventEmitter {
       this.services.splice(0, l);
     }
 
-    try {
-      const services = await this.broker.requestMany<string, MicroserviceInfo>(
-        '$SRV.INFO',
-        '',
-        {
-          limit: -1,
-          timeout,
-        },
-      );
+    const services = await this.broker.requestMany<string, MicroserviceInfo>(
+      '$SRV.INFO',
+      '',
+      {
+        limit: -1,
+        timeout,
+      },
+    );
 
-      for await (const service of services)
-        this.saveService(service);
-    }
-    catch (err) {
-      if (typeof (err) === 'object' && err && 'code' in err && err.code === 503)
-        return; // NATS 'no responders available' error
-
-      throw err;
-    }
+    for await (const service of services)
+      this.saveService(service);
   }
 
   public startPeriodicDiscovery(

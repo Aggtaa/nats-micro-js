@@ -4,9 +4,9 @@ import { Discovery } from './discovery.js';
 import { Broker } from '../broker.js';
 import { debug } from '../debug.js';
 import { storage } from '../decorators/storage.js';
-import { MicroserviceConfig, MicroserviceMethodConfig } from '../types/index.js';
+import { MicroserviceConfig, MicroserviceMethodConfig, MicroserviceRegistration } from '../types/index.js';
 import { MaybePromise } from '../types/types.js';
-import { errorToString, wrapMethodSafe } from '../utils.js';
+import { errorToString, wrapMethodSafe, wrapThread } from '../utils.js';
 
 export class Microservice {
 
@@ -45,9 +45,8 @@ export class Microservice {
   ): void {
     const methodWrap = wrapMethodSafe(
       this.broker,
-      this.discovery.id,
+      wrapThread(this.discovery.id, this.profileMethod(name, method)),
       name,
-      this.profileMethod(name, method),
       method,
     );
 
@@ -97,11 +96,11 @@ export class Microservice {
   profileMethod<T, R>(
     name: string,
     method: MicroserviceMethodConfig<T, R>,
-  ): (args: T) => MaybePromise<R> {
-    return (args) => {
+  ): (args: T, subject: string) => MaybePromise<R> {
+    return (args, subject) => {
       const start = process.hrtime.bigint();
       try {
-        const result = method.handler(args);
+        const result = method.handler(args, subject);
         const elapsed = process.hrtime.bigint() - start;
         this.discovery.profileMethod(
           name,

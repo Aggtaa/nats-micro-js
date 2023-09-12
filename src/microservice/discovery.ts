@@ -7,10 +7,10 @@ import { Broker } from '../broker.js';
 import { localConfig } from '../localConfig.js';
 import {
   BaseMethodData, BaseMicroserviceData, MethodProfile, MicroserviceConfig,
-  MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing, MicroserviceSchema,
+  MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing, MicroserviceRegistration, MicroserviceRegistrationSubject, MicroserviceSchema,
   MicroserviceStats,
 } from '../types/index.js';
-import { randomId, wrapMethod } from '../utils.js';
+import { randomId, wrapMethod, wrapThread } from '../utils.js';
 
 const emptyMethodProfile: MethodProfile = {
   num_requests: 0,
@@ -36,10 +36,10 @@ export class Discovery {
 
   public async start(): Promise<this> {
 
-    const handleSchema = wrapMethod(this.broker, this.id, 'handleSchema', this.handleSchema.bind(this));
-    const handleInfo = wrapMethod(this.broker, this.id, 'handleInfo', this.handleInfo.bind(this));
-    const handlePing = wrapMethod(this.broker, this.id, 'handlePing', this.handlePing.bind(this));
-    const handleStats = wrapMethod(this.broker, this.id, 'handleStats', this.handleStats.bind(this));
+    const handleSchema = wrapMethod(this.broker, wrapThread(this.id, this.handleSchema.bind(this)), 'handleSchema');
+    const handleInfo = wrapMethod(this.broker, wrapThread(this.id, this.handleInfo.bind(this)), 'handleInfo');
+    const handlePing = wrapMethod(this.broker, wrapThread(this.id, this.handlePing.bind(this)), 'handlePing');
+    const handleStats = wrapMethod(this.broker, wrapThread(this.id, this.handleStats.bind(this)), 'handleStats');
 
     this.broker.on('$SRV.SCHEMA', handleSchema);
     this.broker.on(`$SRV.SCHEMA.${this.config.name}`, handleSchema);
@@ -56,6 +56,14 @@ export class Discovery {
     this.broker.on('$SRV.STATS', handleStats);
     this.broker.on(`$SRV.STATS.${this.config.name}`, handleStats);
     this.broker.on(`$SRV.STATS.${this.config.name}.${this.id}`, handleStats);
+
+
+    await this.broker.send(
+      MicroserviceRegistrationSubject,
+      {
+        info: this.handleInfo(),
+      } as MicroserviceRegistration,
+    )
 
     return this;
   }
@@ -94,6 +102,7 @@ export class Discovery {
       metadata: {
         '_nats.client.created.library': 'nats-micro',
         '_nats.client.created.version': localConfig.version,
+        '_nats.client.id': this.broker.clientId,
         ...this.config.metadata,
       },
     };
@@ -121,7 +130,7 @@ export class Discovery {
     return `${this.config.name}.${name}`;
   }
 
-  private async handleSchema(): Promise<MicroserviceSchema> {
+  private handleSchema(): MicroserviceSchema {
     return {
       ...this.makeMicroserviceData(),
       type: 'io.nats.micro.v1.schema_response',
@@ -136,7 +145,7 @@ export class Discovery {
     };
   }
 
-  private async handleInfo(): Promise<MicroserviceInfo> {
+  private handleInfo(): MicroserviceInfo {
 
     return {
       ...this.makeMicroserviceData(),
@@ -158,7 +167,7 @@ export class Discovery {
     };
   }
 
-  private async handleStats(): Promise<MicroserviceStats> {
+  private handleStats(): MicroserviceStats {
     return {
       ...this.makeMicroserviceData(),
       type: 'io.nats.micro.v1.stats_response',

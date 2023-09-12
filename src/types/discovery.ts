@@ -5,7 +5,7 @@ import { MaybePromise } from './types.js';
 // https://pkg.go.dev/github.com/nats-io/nats.go/micro
 
 export type MicroserviceMethodConfig<T, R> = {
-  handler: (request: T | undefined) => MaybePromise<R>,
+  handler: (request: T | undefined, subject: string) => MaybePromise<R>,
   subject?: string,
   metadata?: Record<string, unknown>;
   request?: z.ZodType<T>,
@@ -28,6 +28,7 @@ export type BaseMicroserviceData = {
   name: string,
   version: string,
   metadata: {
+    '_nats.client.id'?: number,
     '_nats.client.created.library': string,
     '_nats.client.created.version': string,
   },

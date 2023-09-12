@@ -1,17 +1,20 @@
-import { EventEmitter } from 'events';
 import * as nats from 'nats';
 
 import { debug } from './debug.js';
-import { localConfig } from './localConfig.js';
 import {
   RequestOptions, MessageMaybeReplyTo, SendOptions,
   Sender, Subject, RequestManyOptions,
 } from './types/index.js';
 import { errorToString, randomId } from './utils.js';
+import { TokenEventEmitter } from './tokenEventEmitter.js';
+
+export type { ConnectionOptions } from 'nats';
 
 export class Broker implements Sender {
 
-  private readonly ee = new EventEmitter();
+  public clientId: number | undefined;
+
+  private readonly ee = new TokenEventEmitter();
   private connection: nats.NatsConnection | undefined;
   private connectionClosedWaiter: Promise<void | Error> | undefined;
   // eslint-disable-next-line new-cap
@@ -19,22 +22,21 @@ export class Broker implements Sender {
   private readonly subscriptions: string[] = [];
 
   // eslint-disable-next-line no-useless-constructor, no-empty-function
-  constructor(public readonly name: string) {
+  constructor(public readonly options: nats.ConnectionOptions) {
   }
 
   public async connect(): Promise<this> {
-    debug.broker.info(`Connecting to server at ${localConfig.nats.serverUrl}`);
+    debug.broker.info(`Connecting to ${this.options.servers} as "${this.options.name}"`);
     try {
-      this.connection = await nats.connect({
-        name: this.name,
-        servers: localConfig.nats.serverUrl,
-      });
+      this.connection = await nats.connect(this.options);
+      this.clientId = this.connection.info?.client_id;
+
       this.connectionClosedWaiter = this.connection.closed();
-      debug.broker.info('Connected to server');
+      debug.broker.info(`Connected as ${this.clientId}`);
       return this;
     }
     catch (err) {
-      debug.broker.error(`Error connecting to server: ${errorToString(err)}`);
+      debug.broker.error(`Failed to connect: ${errorToString(err)}`);
       throw err;
     }
   }
@@ -117,7 +119,7 @@ export class Broker implements Sender {
 
   public on<T>(
     subject: Subject,
-    listener: (data: MessageMaybeReplyTo<T>) => void,
+    listener: (data: MessageMaybeReplyTo<T>, subject: string) => void,
     queue: string | undefined = undefined,
   ): void {
     const subj = this.subjectToStr(subject);
@@ -190,7 +192,7 @@ export class Broker implements Sender {
       }
     }
     catch (err) {
-      if (typeof (err) === 'object' && err && 'code' in err && err.code === 503)
+      if (typeof (err) === 'object' && err && 'code' in err && err.code === '503')
         return; // NATS no responders available
 
       throw err;
