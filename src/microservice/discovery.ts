@@ -7,8 +7,8 @@ import { Broker } from '../broker.js';
 import { localConfig } from '../localConfig.js';
 import {
   BaseMethodData, BaseMicroserviceData, MethodProfile, MicroserviceConfig,
-  MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing, MicroserviceRegistration, MicroserviceRegistrationSubject, MicroserviceSchema,
-  MicroserviceStats,
+  MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing, MicroserviceRegistration,
+  MicroserviceRegistrationSubject, MicroserviceSchema, MicroserviceStats,
 } from '../types/index.js';
 import { randomId, wrapMethod, wrapThread } from '../utils.js';
 
@@ -57,13 +57,12 @@ export class Discovery {
     this.broker.on(`$SRV.STATS.${this.config.name}`, handleStats);
     this.broker.on(`$SRV.STATS.${this.config.name}.${this.id}`, handleStats);
 
-
     await this.broker.send(
       MicroserviceRegistrationSubject,
       {
         info: this.handleInfo(),
       } as MicroserviceRegistration,
-    )
+    );
 
     return this;
   }

@@ -105,7 +105,8 @@ export function wrapMethodSafe<T, R>(
   };
 }
 
-export function wrapThread<T extends (...args: any[]) => any>(threadId: string, callback: T): T {
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+export function wrapThread<T extends(...args: any[]) => any>(threadId: string, callback: T): T {
   threadContext.init(threadId);
   return callback;
 }

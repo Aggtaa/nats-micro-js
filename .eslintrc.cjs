@@ -3,7 +3,7 @@ const { resolve } = require('path');
 module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    ecmaVersion: 2015,
+    ecmaVersion: 2022,
     sourceType: 'module',
   },
   globals: {

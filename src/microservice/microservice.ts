@@ -4,7 +4,7 @@ import { Discovery } from './discovery.js';
 import { Broker } from '../broker.js';
 import { debug } from '../debug.js';
 import { storage } from '../decorators/storage.js';
-import { MicroserviceConfig, MicroserviceMethodConfig, MicroserviceRegistration } from '../types/index.js';
+import { MicroserviceConfig, MicroserviceMethodConfig } from '../types/index.js';
 import { MaybePromise } from '../types/types.js';
 import { errorToString, wrapMethodSafe, wrapThread } from '../utils.js';
 

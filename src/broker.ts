@@ -1,12 +1,12 @@
 import * as nats from 'nats';
 
 import { debug } from './debug.js';
+import { TokenEventEmitter } from './tokenEventEmitter.js';
 import {
   RequestOptions, MessageMaybeReplyTo, SendOptions,
   Sender, Subject, RequestManyOptions,
 } from './types/index.js';
 import { errorToString, randomId } from './utils.js';
-import { TokenEventEmitter } from './tokenEventEmitter.js';
 
 export type { ConnectionOptions } from 'nats';
 

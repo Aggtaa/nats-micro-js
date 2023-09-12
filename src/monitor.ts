@@ -2,7 +2,9 @@ import EventEmitter from 'events';
 
 import { Broker } from './broker.js';
 import { debug } from './debug.js';
-import { Message, MicroserviceInfo, MicroserviceRegistration, MicroserviceRegistrationSubject } from './types/index.js';
+import {
+  Message, MicroserviceInfo, MicroserviceRegistration, MicroserviceRegistrationSubject,
+} from './types/index.js';
 import { wrapMethod, wrapThread } from './utils.js';
 
 export type MonitorDiscoveryOptions = {
@@ -62,7 +64,7 @@ export class Monitor extends EventEmitter {
       }
       else
         idx++;
-    };
+    }
 
     debug.monitor.info(`Client ${clientId} disconnected, removing ${count} microservices`);
 

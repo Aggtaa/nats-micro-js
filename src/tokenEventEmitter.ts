@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type EventHandlerMethod = (args: any, subject: string) => any;
 
 type EventHandler = {
@@ -13,7 +14,6 @@ export class TokenEventEmitter {
   public on(wildcard: string, handler: EventHandlerMethod): void {
     this.handlers.push({ wildcard, handler, once: false });
   }
-
 
   public once(wildcard: string, handler: EventHandlerMethod): void {
     this.handlers.push({ wildcard, handler, once: true });
