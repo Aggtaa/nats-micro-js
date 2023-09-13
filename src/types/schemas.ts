@@ -8,6 +8,7 @@ export const microserviceRegistrationSchema = z.object({
   // name: z.string(),
   // id: z.string(),
   info: z.custom<MicroserviceInfo>(),
+  state: z.enum(['up', 'down']),
 });
 
 export type MicroserviceRegistration = z.infer<typeof microserviceRegistrationSchema>;

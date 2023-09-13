@@ -19,7 +19,7 @@ export class Broker implements Sender {
   private connectionClosedWaiter: Promise<void | Error> | undefined;
   // eslint-disable-next-line new-cap
   private readonly codec = nats.JSONCodec();
-  private readonly subscriptions: string[] = [];
+  private subscriptions: Record<string, nats.Subscription> = {};
 
   // eslint-disable-next-line no-useless-constructor, no-empty-function
   constructor(public readonly options: nats.ConnectionOptions) {
@@ -49,6 +49,7 @@ export class Broker implements Sender {
         return;
       }
       await this.connection.close();
+      this.subscriptions = {};
       const err = await this.connectionClosedWaiter;
       if (err)
         throw err;
@@ -100,15 +101,15 @@ export class Broker implements Sender {
     }
   }
 
-  private async subscribe(
+  private subscribe(
     subject: string,
     queue: string | undefined,
-  ): Promise<void> {
+  ): nats.Subscription {
     if (!this.connection)
       throw new Error('Not connected');
 
     debug.broker.debug(`Subscribing to "${subject}"`);
-    this.connection.subscribe(
+    return this.connection.subscribe(
       subject,
       {
         queue,
@@ -117,17 +118,38 @@ export class Broker implements Sender {
     );
   }
 
+  private unsubscribe(
+    subscription: nats.Subscription,
+  ): void {
+    if (!this.connection)
+      throw new Error('Not connected');
+
+    debug.broker.debug(`Unsubscribing from "${subscription.getSubject()}"`);
+    subscription.unsubscribe();
+  }
+
   public on<T>(
     subject: Subject,
     listener: (data: MessageMaybeReplyTo<T>, subject: string) => void,
     queue: string | undefined = undefined,
   ): void {
     const subj = this.subjectToStr(subject);
-    if (!this.subscriptions.includes(subj)) {
-      this.subscribe(subj, queue);
-      this.subscriptions.push(subj);
+    if (!this.subscriptions[subj]) {
+      this.subscriptions[subj] = this.subscribe(subj, queue);
     }
     this.ee.on(subj, listener);
+  }
+
+  public off<T>(
+    subject: Subject,
+    listener: (data: MessageMaybeReplyTo<T>, subject: string) => void,
+  ): void {
+    const subj = this.subjectToStr(subject);
+    if (this.subscriptions[subj]) {
+      this.unsubscribe(this.subscriptions[subj]);
+      delete (this.subscriptions[subj]);
+    }
+    this.ee.off(subj, listener);
   }
 
   public async send<T>(

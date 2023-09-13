@@ -46,7 +46,10 @@ export class Monitor extends EventEmitter {
   }
 
   private handleServiceRegistration(data: MicroserviceRegistration): void {
-    this.saveService(data.info);
+    if (data.state === 'down')
+      this.removeService(data.info);
+    else
+      this.saveService(data.info);
   }
 
   private async handleAccountDisconnect(msg: Message<UserDisconnectEvent>): Promise<void> {
@@ -59,8 +62,8 @@ export class Monitor extends EventEmitter {
 
       if (this.getServiceClientId(service) === clientId) {
         const removed = this.services.splice(idx, 1);
-        count++;
         this.emit('removed', removed[0]);
+        count++;
       }
       else
         idx++;
@@ -96,6 +99,20 @@ export class Monitor extends EventEmitter {
 
     this.emit('added', service);
     this.emit('change', this.services);
+  }
+
+  private removeService(service: MicroserviceInfo): void {
+    const idx = this.services.findIndex((svc) => svc.id === service.id);
+
+    if (idx >= 0) {
+
+      debug.monitor.info(`Removing microservice ${service.name}.${service.id}`);
+
+      this.services.splice(idx, 1);
+
+      this.emit('removed', service);
+      this.emit('change', this.services);
+    }
   }
 
   public async discover(

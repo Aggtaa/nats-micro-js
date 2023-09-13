@@ -24,11 +24,13 @@ export function errorToString(error: unknown): string {
   return String(error);
 }
 
+export type MethodWrap<T> = (msg: MessageMaybeReplyTo<T>, subject: string) => void;
+
 export function wrapMethod<T, R>(
   broker: Sender,
   callback: (args: T, subject: string) => MaybePromise<R>,
   methodName: string,
-): (msg: MessageMaybeReplyTo<T>, subject: string) => void {
+): MethodWrap<T> {
 
   return async (msg, subject) => {
     debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
@@ -49,7 +51,7 @@ export function wrapMethodSafe<T, R>(
   callback: (args: T, subject: string) => MaybePromise<R>,
   methodName: string,
   method: MicroserviceMethodConfig<T, R>,
-): (msg: MessageMaybeReplyTo<T>, subject: string) => void {
+): MethodWrap<T> {
 
   return async (msg, subject) => {
     try {

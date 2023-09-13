@@ -6,11 +6,15 @@ import { debug } from '../debug.js';
 import { storage } from '../decorators/storage.js';
 import { MicroserviceConfig, MicroserviceMethodConfig } from '../types/index.js';
 import { MaybePromise } from '../types/types.js';
-import { errorToString, wrapMethodSafe, wrapThread } from '../utils.js';
+import {
+  MethodWrap, errorToString, wrapMethodSafe, wrapThread,
+} from '../utils.js';
 
 export class Microservice {
 
   private readonly discovery: Discovery;
+
+  private readonly startedMethods: Record<string, MethodWrap<unknown>> = {};
 
   constructor(
     private readonly broker: Broker,
@@ -19,7 +23,10 @@ export class Microservice {
     this.discovery = new Discovery(broker, config);
   }
 
-  public static async create(broker: Broker, config: MicroserviceConfig): Promise<Microservice> {
+  public static async create(
+    broker: Broker,
+    config: MicroserviceConfig,
+  ): Promise<Microservice> {
     const ms = new Microservice(broker, config);
     await ms.start();
     return ms;
@@ -39,10 +46,10 @@ export class Microservice {
     return Microservice.create(broker, config);
   }
 
-  private startMethod<R, T>(
+  private async startMethod<R, T>(
     name: string,
     method: MicroserviceMethodConfig<R, T>,
-  ): void {
+  ): Promise<void> {
     const methodWrap = wrapMethodSafe(
       this.broker,
       wrapThread(this.discovery.id, this.profileMethod(name, method)),
@@ -50,20 +57,26 @@ export class Microservice {
       method,
     );
 
-    if (method.local) {
-      this.broker.on<R>(
-        this.discovery.getMethodSubject(name, method, true),
-        methodWrap,
-      );
-    }
-    else {
-      this.broker.on<R>(
-        this.discovery.getMethodSubject(name, method),
-        methodWrap,
-        method.unbalanced ? undefined : 'q',
-      );
-    }
+    this.startedMethods[name] = methodWrap as MethodWrap<unknown>;
 
+    this.broker.on<R>(
+      this.discovery.getMethodSubject(name, method, method.local),
+      methodWrap,
+      method.unbalanced || method.local ? undefined : 'q',
+    );
+  }
+
+  private async stopMethod<R, T>(
+    name: string,
+    method: MicroserviceMethodConfig<R, T>,
+  ): Promise<void> {
+
+    this.broker.off<R>(
+      this.discovery.getMethodSubject(name, method, method.local),
+      this.startedMethods[name],
+    );
+
+    delete (this.startedMethods[name]);
   }
 
   public async start(): Promise<this> {
@@ -72,12 +85,28 @@ export class Microservice {
 
     const cfg = this.discovery.config;
 
-    debug.ms.thread.info(`Registering microservice ${cfg.name}(${Object.keys(cfg.methods).join(',')})`);
+    debug.ms.thread.info(`Starting microservice ${cfg.name}(${Object.keys(cfg.methods).join(',')})`);
 
     await this.discovery.start();
 
     for (const [name, method] of Object.entries(cfg.methods))
-      this.startMethod(name, method);
+      await this.startMethod(name, method);
+
+    return this;
+  }
+
+  public async stop(): Promise<this> {
+
+    threadContext.init(this.discovery.id);
+
+    const cfg = this.discovery.config;
+
+    debug.ms.thread.info(`Stopping microservice ${cfg.name}(${Object.keys(cfg.methods).join(',')})`);
+
+    for (const [name, method] of Object.entries(cfg.methods))
+      await this.stopMethod(name, method);
+
+    await this.discovery.stop();
 
     return this;
   }

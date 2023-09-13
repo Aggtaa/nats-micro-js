@@ -17,7 +17,7 @@ It also supports service schema discovery which is not (yet?) supported by `nats
 
 ## Usage
 
-It is extremely simple:
+Starting a microservice is extremely simple:
 
 ### Functional way
 ```ts
@@ -97,6 +97,19 @@ export default class EchoMicroservice {
 const echoMicroservice = new EchoMicroservice();
 
 const broker = await new Broker('echo' + process.pid).connect();
+await Microservice.createFromClass(broker, echoMicroservice);
+```
+
+## Stopping a microservice
+
+You can easily stop a microservice
+```ts
+const ms = await Microservice.createFromClass(broker, echoMicroservice);
+await ms.stop();
+```
+
+To start if again just use the same code as before:
+```ts
 await Microservice.createFromClass(broker, echoMicroservice);
 ```
 

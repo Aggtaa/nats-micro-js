@@ -10,7 +10,7 @@ import {
   MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing, MicroserviceRegistration,
   MicroserviceRegistrationSubject, MicroserviceSchema, MicroserviceStats,
 } from '../types/index.js';
-import { randomId, wrapMethod, wrapThread } from '../utils.js';
+import { MethodWrap, randomId, wrapMethod, wrapThread } from '../utils.js';
 
 const emptyMethodProfile: MethodProfile = {
   num_requests: 0,
@@ -25,6 +25,10 @@ export class Discovery {
   public readonly id: string;
   public readonly startedAt: Date;
   public readonly methodStats: Record<string, MethodProfile> = {};
+  private readonly handleSchemaWrap: MethodWrap<void>;
+  private readonly handleInfoWrap: MethodWrap<void>;
+  private readonly handlePingWrap: MethodWrap<void>;
+  private readonly handleStatsWrap: MethodWrap<void>;
 
   constructor(
     private readonly broker: Broker,
@@ -32,39 +36,67 @@ export class Discovery {
   ) {
     this.startedAt = new Date();
     this.id = randomId();
+
+    this.handleSchemaWrap = wrapMethod(this.broker, wrapThread(this.id, this.handleSchema.bind(this)), 'handleSchema');
+    this.handleInfoWrap = wrapMethod(this.broker, wrapThread(this.id, this.handleInfo.bind(this)), 'handleInfo');
+    this.handlePingWrap = wrapMethod(this.broker, wrapThread(this.id, this.handlePing.bind(this)), 'handlePing');
+    this.handleStatsWrap = wrapMethod(this.broker, wrapThread(this.id, this.handleStats.bind(this)), 'handleStats');
   }
 
   public async start(): Promise<this> {
 
-    const handleSchema = wrapMethod(this.broker, wrapThread(this.id, this.handleSchema.bind(this)), 'handleSchema');
-    const handleInfo = wrapMethod(this.broker, wrapThread(this.id, this.handleInfo.bind(this)), 'handleInfo');
-    const handlePing = wrapMethod(this.broker, wrapThread(this.id, this.handlePing.bind(this)), 'handlePing');
-    const handleStats = wrapMethod(this.broker, wrapThread(this.id, this.handleStats.bind(this)), 'handleStats');
+    this.broker.on('$SRV.SCHEMA', this.handleSchemaWrap);
+    this.broker.on(`$SRV.SCHEMA.${this.config.name}`, this.handleSchemaWrap);
+    this.broker.on(`$SRV.SCHEMA.${this.config.name}.${this.id}`, this.handleSchemaWrap);
 
-    this.broker.on('$SRV.SCHEMA', handleSchema);
-    this.broker.on(`$SRV.SCHEMA.${this.config.name}`, handleSchema);
-    this.broker.on(`$SRV.SCHEMA.${this.config.name}.${this.id}`, handleSchema);
+    this.broker.on('$SRV.INFO', this.handleInfoWrap);
+    this.broker.on(`$SRV.INFO.${this.config.name}`, this.handleInfoWrap);
+    this.broker.on(`$SRV.INFO.${this.config.name}.${this.id}`, this.handleInfoWrap);
 
-    this.broker.on('$SRV.INFO', handleInfo);
-    this.broker.on(`$SRV.INFO.${this.config.name}`, handleInfo);
-    this.broker.on(`$SRV.INFO.${this.config.name}.${this.id}`, handleInfo);
+    this.broker.on('$SRV.PING', this.handlePingWrap);
+    this.broker.on(`$SRV.PING.${this.config.name}`, this.handlePingWrap);
+    this.broker.on(`$SRV.PING.${this.config.name}.${this.id}`, this.handlePingWrap);
 
-    this.broker.on('$SRV.PING', handlePing);
-    this.broker.on(`$SRV.PING.${this.config.name}`, handlePing);
-    this.broker.on(`$SRV.PING.${this.config.name}.${this.id}`, handlePing);
+    this.broker.on('$SRV.STATS', this.handleStatsWrap);
+    this.broker.on(`$SRV.STATS.${this.config.name}`, this.handleStatsWrap);
+    this.broker.on(`$SRV.STATS.${this.config.name}.${this.id}`, this.handleStatsWrap);
 
-    this.broker.on('$SRV.STATS', handleStats);
-    this.broker.on(`$SRV.STATS.${this.config.name}`, handleStats);
-    this.broker.on(`$SRV.STATS.${this.config.name}.${this.id}`, handleStats);
+    await this.publishRegistration('up');
+
+    return this;
+  }
+
+  public async stop(): Promise<this> {
+    await this.publishRegistration('down');
+
+    this.broker.off('$SRV.SCHEMA', this.handleSchemaWrap);
+    this.broker.off(`$SRV.SCHEMA.${this.config.name}`, this.handleSchemaWrap);
+    this.broker.off(`$SRV.SCHEMA.${this.config.name}.${this.id}`, this.handleSchemaWrap);
+
+    this.broker.off('$SRV.INFO', this.handleInfoWrap);
+    this.broker.off(`$SRV.INFO.${this.config.name}`, this.handleInfoWrap);
+    this.broker.off(`$SRV.INFO.${this.config.name}.${this.id}`, this.handleInfoWrap);
+
+    this.broker.off('$SRV.PING', this.handlePingWrap);
+    this.broker.off(`$SRV.PING.${this.config.name}`, this.handlePingWrap);
+    this.broker.off(`$SRV.PING.${this.config.name}.${this.id}`, this.handlePingWrap);
+
+    this.broker.off('$SRV.STATS', this.handleStatsWrap);
+    this.broker.off(`$SRV.STATS.${this.config.name}`, this.handleStatsWrap);
+    this.broker.off(`$SRV.STATS.${this.config.name}.${this.id}`, this.handleStatsWrap);
+
+    return this;
+  }
+
+  private async publishRegistration(state: MicroserviceRegistration['state']): Promise<void> {
 
     await this.broker.send(
       MicroserviceRegistrationSubject,
       {
         info: this.handleInfo(),
+        state,
       } as MicroserviceRegistration,
     );
-
-    return this;
   }
 
   public addMethod<R, T>(
@@ -129,22 +161,7 @@ export class Discovery {
     return `${this.config.name}.${name}`;
   }
 
-  private handleSchema(): MicroserviceSchema {
-    return {
-      ...this.makeMicroserviceData(),
-      type: 'io.nats.micro.v1.schema_response',
-      endpoints: Object.entries(this.config.methods)
-        .map(([n, m]) => ({
-          ...this.makeMethodData(n, m),
-          schema: {
-            request: zodToJsonSchema(m.request ?? z.any()),
-            response: zodToJsonSchema(m.response ?? z.void()),
-          },
-        })),
-    };
-  }
-
-  private handleInfo(): MicroserviceInfo {
+  private makeInfo(): MicroserviceInfo {
 
     return {
       ...this.makeMicroserviceData(),
@@ -164,6 +181,25 @@ export class Discovery {
           };
         }),
     };
+  }
+
+  private handleSchema(): MicroserviceSchema {
+    return {
+      ...this.makeMicroserviceData(),
+      type: 'io.nats.micro.v1.schema_response',
+      endpoints: Object.entries(this.config.methods)
+        .map(([n, m]) => ({
+          ...this.makeMethodData(n, m),
+          schema: {
+            request: zodToJsonSchema(m.request ?? z.any()),
+            response: zodToJsonSchema(m.response ?? z.void()),
+          },
+        })),
+    };
+  }
+
+  private handleInfo(): MicroserviceInfo {
+    return this.makeInfo();
   }
 
   private handleStats(): MicroserviceStats {
