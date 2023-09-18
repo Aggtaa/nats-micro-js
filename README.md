@@ -13,7 +13,7 @@ It also supports service schema discovery which is not (yet?) supported by `nats
 ## Limitations / TODO
 
 1. Automatic type schemas and validation is inclomplete yet
-2. No message headers support yet 
+2. No message headers sending support yet 
 
 ## Usage
 
@@ -111,6 +111,19 @@ await ms.stop();
 To start if again just use the same code as before:
 ```ts
 await Microservice.createFromClass(broker, echoMicroservice);
+```
+
+## Getting received subject and headers
+
+* You may need to identify what subject a message arrived at.
+* You may also need to read incoming message headers
+
+All this can be achieved in a handler method using its second argument
+```ts
+@method() 
+private configChangeEvent(data: WhatEventTypeYouUse, payload: { subject, headers }): void {
+  // ...
+}
 ```
 
 ## Load balancing
