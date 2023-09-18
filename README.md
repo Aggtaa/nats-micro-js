@@ -15,6 +15,30 @@ It also supports service schema discovery which is not (yet?) supported by `nats
 1. Automatic type schemas and validation is inclomplete yet
 2. No message headers sending support yet 
 
+## Installation
+
+```bash
+npm install
+```
+
+The library is built in three flavours, you can use any of them: ESM, CommonJS and TypeScript typings
+
+For main classes:
+```ts
+import { Broker, Microservice } from 'nats-micro';
+// or 
+const { Broker, Microservice } = require('nats-micro');
+```
+
+For decorators:
+```ts
+import { microservice, method } from 'nats-micro';
+// or 
+const { microservice, method } = require('nats-micro');
+```
+
+and so on. Everything is exported at the package root.
+
 ## Usage
 
 Starting a microservice is extremely simple:

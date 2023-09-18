@@ -10,7 +10,7 @@ export type MessageHandler<T> = (msg: MessageMaybeReplyTo<T>, subject: string) =
 export type MicroserviceMethodConfig<T, R> = {
   handler: (request: T | undefined, payload: HandlerPayload) => MaybePromise<R>,
   subject?: string,
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, string>;
   request?: z.ZodType<T>,
   response?: z.ZodType<R>,
   unbalanced?: boolean,
@@ -21,7 +21,7 @@ export type MicroserviceConfig = {
   name: string;
   description: string;
   version: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, string>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   methods: Record<string, MicroserviceMethodConfig<any, any>>,
 }
@@ -47,7 +47,7 @@ export type MicroservicePing = BaseMicroserviceData & {
 }
 
 export type MethodInfo = BaseMethodData & {
-  metadata: unknown,
+  metadata: Record<string, string>,
 }
 
 export type MicroserviceInfo = BaseMicroserviceData & {
