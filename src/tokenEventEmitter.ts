@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type EventHandlerMethod = (args: any, subject: string) => any;
+import { MessageHandler, MessageMaybeReplyTo } from './types/index.js';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type EventHandler = {
   wildcard: string;
-  handler: EventHandlerMethod;
+  handler: MessageHandler<unknown>;
   once: boolean;
 }
 
@@ -11,25 +11,25 @@ export class TokenEventEmitter {
 
   private readonly handlers: EventHandler[] = [];
 
-  public on(wildcard: string, handler: EventHandlerMethod): void {
-    this.handlers.push({ wildcard, handler, once: false });
+  public on<T>(wildcard: string, handler: MessageHandler<T>): void {
+    this.handlers.push({ wildcard, handler: handler as MessageHandler<unknown>, once: false });
   }
 
-  public once(wildcard: string, handler: EventHandlerMethod): void {
-    this.handlers.push({ wildcard, handler, once: true });
+  public once<T>(wildcard: string, handler: MessageHandler<T>): void {
+    this.handlers.push({ wildcard, handler: handler as MessageHandler<unknown>, once: true });
   }
 
-  public off(wildcard: string, handler: EventHandlerMethod): void {
+  public off<T>(wildcard: string, handler: MessageHandler<T>): void {
     const idx = this.handlers.findIndex((h) => h.wildcard === wildcard && h.handler === handler);
 
     if (idx >= 0)
       this.handlers.splice(idx, 1);
   }
 
-  public emit(subject: string, args: any): void {
+  public emit(subject: string, msg: MessageMaybeReplyTo<unknown>): void {
     for (const handler of [...this.handlers])
       if (this.matchSubject(handler.wildcard, subject)) {
-        handler.handler(args, subject);
+        handler.handler(msg, subject);
         if (handler.once)
           this.off(handler.wildcard, handler.handler);
       }

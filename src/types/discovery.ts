@@ -1,11 +1,14 @@
 import { z } from 'zod';
 
+import { MessageMaybeReplyTo, HandlerPayload } from './broker.js';
 import { MaybePromise } from './types.js';
 
 // https://pkg.go.dev/github.com/nats-io/nats.go/micro
 
+export type MessageHandler<T> = (msg: MessageMaybeReplyTo<T>, subject: string) => void;
+
 export type MicroserviceMethodConfig<T, R> = {
-  handler: (request: T | undefined, subject: string) => MaybePromise<R>,
+  handler: (request: T | undefined, payload: HandlerPayload) => MaybePromise<R>,
   subject?: string,
   metadata?: Record<string, unknown>;
   request?: z.ZodType<T>,
@@ -28,7 +31,7 @@ export type BaseMicroserviceData = {
   name: string,
   version: string,
   metadata: {
-    '_nats.client.id'?: number,
+    '_nats.client.id': string,
     '_nats.client.created.library': string,
     '_nats.client.created.version': string,
   },

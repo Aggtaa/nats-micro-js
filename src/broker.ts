@@ -61,6 +61,10 @@ export class Broker implements Sender {
     }
   }
 
+  public createInbox(): string {
+    return nats.createInbox();
+  }
+
   private decode(msg: nats.Msg): unknown {
     const str = msg.string();
     if (str === '')
@@ -85,7 +89,7 @@ export class Broker implements Sender {
             data: this.decode(msg),
             headers: msg.headers,
             replyTo: msg.reply,
-          } as MessageMaybeReplyTo<unknown>,
+          },
         );
       }
       catch {

@@ -4,17 +4,18 @@ import { Discovery } from './discovery.js';
 import { Broker } from '../broker.js';
 import { debug } from '../debug.js';
 import { storage } from '../decorators/storage.js';
-import { MicroserviceConfig, MicroserviceMethodConfig } from '../types/index.js';
-import { MaybePromise } from '../types/types.js';
 import {
-  MethodWrap, errorToString, wrapMethodSafe, wrapThread,
+  Handler, MessageHandler, MicroserviceConfig, MicroserviceMethodConfig,
+} from '../types/index.js';
+import {
+  errorToString, wrapMethodSafe, wrapThread,
 } from '../utils.js';
 
 export class Microservice {
 
   private readonly discovery: Discovery;
 
-  private readonly startedMethods: Record<string, MethodWrap<unknown>> = {};
+  private readonly startedMethods: Record<string, MessageHandler<unknown>> = {};
 
   constructor(
     private readonly broker: Broker,
@@ -43,7 +44,20 @@ export class Microservice {
     for (const method of Object.values(config.methods))
       method.handler = method.handler.bind(target);
 
-    return Microservice.create(broker, config);
+    const service = await Microservice.create(broker, config);
+
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    (target as any)['__microservice'] = service;
+
+    return service;
+  }
+
+  public get id(): Readonly<string> {
+    return Object.freeze(this.discovery.id);
+  }
+
+  public get config(): Readonly<MicroserviceConfig> {
+    return Object.freeze(this.discovery.config);
   }
 
   private async startMethod<R, T>(
@@ -57,7 +71,7 @@ export class Microservice {
       method,
     );
 
-    this.startedMethods[name] = methodWrap as MethodWrap<unknown>;
+    this.startedMethods[name] = methodWrap as MessageHandler<unknown>;
 
     this.broker.on<R>(
       this.discovery.getMethodSubject(name, method, method.local),
@@ -125,11 +139,11 @@ export class Microservice {
   profileMethod<T, R>(
     name: string,
     method: MicroserviceMethodConfig<T, R>,
-  ): (args: T, subject: string) => MaybePromise<R> {
-    return (args, subject) => {
+  ): Handler<T, R> {
+    return (args, payload) => {
       const start = process.hrtime.bigint();
       try {
-        const result = method.handler(args, subject);
+        const result = method.handler(args, payload);
         const elapsed = process.hrtime.bigint() - start;
         this.discovery.profileMethod(
           name,

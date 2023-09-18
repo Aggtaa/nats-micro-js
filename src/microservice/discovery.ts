@@ -6,11 +6,13 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Broker } from '../broker.js';
 import { localConfig } from '../localConfig.js';
 import {
-  BaseMethodData, BaseMicroserviceData, MethodProfile, MicroserviceConfig,
-  MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing, MicroserviceRegistration,
-  MicroserviceRegistrationSubject, MicroserviceSchema, MicroserviceStats,
+  BaseMethodData, BaseMicroserviceData, MessageHandler, MethodProfile,
+  MicroserviceConfig, MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing,
+  MicroserviceRegistration, MicroserviceRegistrationSubject, MicroserviceSchema, MicroserviceStats,
 } from '../types/index.js';
-import { MethodWrap, randomId, wrapMethod, wrapThread } from '../utils.js';
+import {
+  randomId, wrapMethod, wrapThread,
+} from '../utils.js';
 
 const emptyMethodProfile: MethodProfile = {
   num_requests: 0,
@@ -25,10 +27,10 @@ export class Discovery {
   public readonly id: string;
   public readonly startedAt: Date;
   public readonly methodStats: Record<string, MethodProfile> = {};
-  private readonly handleSchemaWrap: MethodWrap<void>;
-  private readonly handleInfoWrap: MethodWrap<void>;
-  private readonly handlePingWrap: MethodWrap<void>;
-  private readonly handleStatsWrap: MethodWrap<void>;
+  private readonly handleSchemaWrap: MessageHandler<void>;
+  private readonly handleInfoWrap: MessageHandler<void>;
+  private readonly handlePingWrap: MessageHandler<void>;
+  private readonly handleStatsWrap: MessageHandler<void>;
 
   constructor(
     private readonly broker: Broker,
@@ -133,7 +135,7 @@ export class Discovery {
       metadata: {
         '_nats.client.created.library': 'nats-micro',
         '_nats.client.created.version': localConfig.version,
-        '_nats.client.id': this.broker.clientId,
+        '_nats.client.id': String(this.broker.clientId),
         ...this.config.metadata,
       },
     };

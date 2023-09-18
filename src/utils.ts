@@ -5,7 +5,7 @@ import { ZodError } from 'zod';
 
 import { debug } from './debug.js';
 import {
-  MaybePromise, MessageMaybeReplyTo, MicroserviceMethodConfig, Sender,
+  Handler, MessageHandler, MicroserviceMethodConfig, Sender,
 } from './types/index.js';
 
 export function randomId(): string {
@@ -24,18 +24,16 @@ export function errorToString(error: unknown): string {
   return String(error);
 }
 
-export type MethodWrap<T> = (msg: MessageMaybeReplyTo<T>, subject: string) => void;
-
 export function wrapMethod<T, R>(
   broker: Sender,
-  callback: (args: T, subject: string) => MaybePromise<R>,
+  callback: Handler<T, R>,
   methodName: string,
-): MethodWrap<T> {
+): MessageHandler<T> {
 
   return async (msg, subject) => {
     debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
 
-    const output: R = await callback(msg.data, subject);
+    const output: R = await callback(msg.data, { subject, headers: msg.headers });
     if (!isUndefined(output) && 'replyTo' in msg && msg.replyTo) {
 
       broker.send(
@@ -48,10 +46,10 @@ export function wrapMethod<T, R>(
 
 export function wrapMethodSafe<T, R>(
   broker: Sender,
-  callback: (args: T, subject: string) => MaybePromise<R>,
+  callback: Handler<T, R>,
   methodName: string,
   method: MicroserviceMethodConfig<T, R>,
-): MethodWrap<T> {
+): MessageHandler<T> {
 
   return async (msg, subject) => {
     try {
@@ -70,7 +68,7 @@ export function wrapMethodSafe<T, R>(
 
       debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
 
-      let output: R = await callback(input, subject);
+      let output: R = await callback(input, { subject, headers: msg.headers });
       if (!isUndefined(output) && 'replyTo' in msg && msg.replyTo) {
 
         if (method.response) {
@@ -108,7 +106,7 @@ export function wrapMethodSafe<T, R>(
 }
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export function wrapThread<T extends(...args: any[]) => any>(threadId: string, callback: T): T {
+export function wrapThread<T extends (...args: any[]) => any>(threadId: string, callback: T): T {
   threadContext.init(threadId);
   return callback;
 }

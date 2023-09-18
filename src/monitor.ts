@@ -75,7 +75,7 @@ export class Monitor extends EventEmitter {
   }
 
   private getServiceClientId(service: MicroserviceInfo): number | undefined {
-    return service.metadata['_nats.client.id'];
+    return Number(service.metadata['_nats.client.id']);
   }
 
   private saveService(service: MicroserviceInfo): void {

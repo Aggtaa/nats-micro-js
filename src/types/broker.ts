@@ -1,4 +1,11 @@
-import { PartialBy } from './types.js';
+import { MaybePromise, PartialBy } from './types.js';
+
+export type HandlerPayload = {
+  subject: string;
+  headers?: Iterable<[string, string[]]>;
+}
+
+export type Handler<T, R> = (data: T, payload: HandlerPayload) => MaybePromise<R>;
 
 export type MicroserviceSubject = {
   microservice: string;

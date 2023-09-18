@@ -29,11 +29,7 @@ export function method<
 
     ms.config.methods[name] = {
       handler: descriptor.value,
-      subject: options?.subject,
-      request: options?.request,
-      response: options?.response,
-      unbalanced: options?.unbalanced,
-      local: options?.local,
+      ...options,
     };
 
     return descriptor;
