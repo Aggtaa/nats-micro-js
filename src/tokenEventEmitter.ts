@@ -26,6 +26,10 @@ export class TokenEventEmitter {
       this.handlers.splice(idx, 1);
   }
 
+  public offAll(): void {
+    this.handlers.splice(0);
+  }
+
   public emit(subject: string, msg: MessageMaybeReplyTo<unknown>): void {
     for (const handler of [...this.handlers])
       if (this.matchSubject(handler.wildcard, subject)) {

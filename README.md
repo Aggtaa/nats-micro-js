@@ -1,5 +1,9 @@
 # NATS Microservice Library
 
+![](https://img.shields.io/badge/Coverage-38%25-F2C572.svg?style=flat&prefix=$coverage$)
+
+
+
 A convenient microservice library based on NATS and compatible with nats-go microservices
 
 ## Description
@@ -12,22 +16,23 @@ It also supports service schema discovery which is not (yet?) supported by `nats
 
 ## Limitations / TODO
 
-1. Automatic type schemas and validation is inclomplete yet
-2. No message headers sending support yet 
+1. Automatic type schemas and validation is inclomplete
+2. No way to get response headers when using request method. Use createInbox => on => send => off sequence instead
+3. `InMemoryBroker` mock class does not use queue groups and thus does not load balance
 
 ## Installation
 
 ```bash
-npm install
+npm install nats-micro
 ```
 
 The library is built in three flavours, you can use any of them: ESM, CommonJS and TypeScript typings
 
 For main classes:
 ```ts
-import { Broker, Microservice } from 'nats-micro';
+import { Broker, NatsBroker, Microservice } from 'nats-micro';
 // or 
-const { Broker, Microservice } = require('nats-micro');
+const { Broker, NatsBroker, Microservice } = require('nats-micro');
 ```
 
 For decorators:
@@ -45,7 +50,7 @@ Starting a microservice is extremely simple:
 
 ### Functional way
 ```ts
-const broker = await new Broker('echo' + process.pid).connect();
+const broker = await new NatsBroker('echo' + process.pid).connect();
 
 await Microservice.create(
   broker,
@@ -95,7 +100,7 @@ class EchoMicroservice {
 
 const echoMicroservice = new EchoMicroservice();
 
-const broker = await new Broker('echo' + process.pid).connect();
+const broker = await new NatsBroker('echo' + process.pid).connect();
 await Microservice.create(broker, echoMicroservice.config);
 ```
 
@@ -120,7 +125,7 @@ export default class EchoMicroservice {
 
 const echoMicroservice = new EchoMicroservice();
 
-const broker = await new Broker('echo' + process.pid).connect();
+const broker = await new NatsBroker('echo' + process.pid).connect();
 await Microservice.createFromClass(broker, echoMicroservice);
 ```
 
@@ -148,6 +153,29 @@ All this can be achieved in a handler method using its second argument
 private configChangeEvent(data: WhatEventTypeYouUse, payload: { subject, headers }): void {
   // ...
 }
+```
+
+## Accessing a microservice underlying connection and discovery connection information
+
+Using `Microservice.createFromClass` method gives you ability to access the microservice created and its discovery 
+
+```ts
+
+class EchoMicroservice {
+  
+  // can have any access modifier
+  private __microservice: Microservice | undefined;
+}
+
+const broker = await new NatsBroker('echo' + process.pid).connect();
+
+const echoMicroservice = new EchoMicroservice();
+const microservice = await Microservice.createFromClass(broker, echoMicroservice);
+
+// reference to the same microservice is created automatically
+assert(echoMicroservice.____microservice === microservice);
+
+console.log(`Instance ID assigned: ${echoMicroservice.____microservice.discovery.id}`);
 ```
 
 ## Load balancing
@@ -246,3 +274,17 @@ monitor.on('removed', (service) => console.log);
 This code will give `Monitor` an ability to subscribe to "$SYS.ACCOUNT.*.DISCONNECT" subject and watch connections going offline. 
 
 As every microservice created with `nats-micro` has a `_nats.client.id` value in its metadata, this allows `Monitor` to associate microservices with NATS connections and understand if they went offline when their parent broker is disconnects for whatever reason.
+
+Having a NATS connection information also allows accessing client id, IP address, username and account name for every microservice.
+
+## Unit tesing
+
+If you need to unittest your code that uses `nats-miro`, there is a helpful class `InMemoryBroker` that mocks NATS connection without real NATS or even any network.
+
+It implements the same `Broker` interface that `NatsBroker` class does and can be used in all scenarios where `NatsBroker` is used.
+
+```ts
+import { InMemoryBroker } from 'nats-micro';
+// or
+const { InMemoryBroker } = require('nats-micro');
+```

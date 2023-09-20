@@ -5,8 +5,6 @@ import { MaybePromise } from './types.js';
 
 // https://pkg.go.dev/github.com/nats-io/nats.go/micro
 
-export type MessageHandler<T> = (msg: MessageMaybeReplyTo<T>, subject: string) => void;
-
 export type MicroserviceMethodConfig<T, R> = {
   handler: (request: T | undefined, payload: HandlerPayload) => MaybePromise<R>,
   subject?: string,

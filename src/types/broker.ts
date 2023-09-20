@@ -31,6 +31,8 @@ export type MessageReplyTo<T> = Message<T> & {
 
 export type MessageMaybeReplyTo<T> = PartialBy<MessageReplyTo<T>, 'replyTo'>;
 
+export type MessageHandler<T> = (data: MessageMaybeReplyTo<T>, subject: string) => void;
+
 export type RequestOptions = {
   timeout?: number;
 }

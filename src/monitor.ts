@@ -11,38 +11,147 @@ export type MonitorDiscoveryOptions = {
   doNotClear: boolean;
 }
 
-export type DiscoveredMicroservice = MicroserviceInfo & {
-  firstFoundAt: Date;
-  lastFoundAt: Date;
+type ServerPingOptions = {
+  // no options yet
+}
+
+type ServerPingResponse = {
+  server: {
+    name: string,
+    host: string
+    id: string,
+    ver: string,
+    // jetstream: boolean,
+    // flags: number,
+    // seq: number,
+    // time: string,
+  }
+}
+
+type ServerConnzOptions = {
+  // no options yet
+  auth: boolean;
+}
+
+type ServerConnzItem = {
+  cid: number;
+  ip: string;
+  start: string;
+  account: string;
+  authorized_user: string;
+}
+
+type ServerConnz = {
+  data: {
+    connections: ServerConnzItem[];
+  }
 }
 
 type UserConnectEvent = {
+  id?: string;
+  server: {
+    name: string;
+    host: string;
+    id: string;
+    ver: string;
+  }
   client: {
+    start: string;
+    host: string;
     id: number;
-    acc: string;
+    acc?: string;
+    user?: string;
   }
 }
 
 type UserDisconnectEvent = UserConnectEvent;
 
+export type DiscoveredMicroservice = MicroserviceInfo & {
+  firstFoundAt: Date;
+  lastFoundAt: Date;
+  connection: UserConnectEvent | undefined;
+}
+
 export class Monitor extends EventEmitter {
 
   public readonly services: DiscoveredMicroservice[] = [];
   private discoveryInterval: NodeJS.Timer | undefined;
+  private readonly connections: Record<string, UserConnectEvent> = {};
 
   constructor(
     private readonly broker: Broker,
-    systemBroker?: Broker,
+    private readonly systemBroker?: Broker,
   ) {
     super();
 
     const handleServiceRegistration = wrapMethod(this.broker, wrapThread('monitor', this.handleServiceRegistration.bind(this)), 'handleServiceStatus');
     broker.on(MicroserviceRegistrationSubject, handleServiceRegistration);
 
-    if (systemBroker)
+    if (systemBroker) {
+      systemBroker.on('$SYS.ACCOUNT.*.CONNECT', this.handleAccountConnect.bind(this));
       systemBroker.on('$SYS.ACCOUNT.*.DISCONNECT', this.handleAccountDisconnect.bind(this));
+    }
+    else {
+      debug.monitor.error('Connection established/dropped monitoring disabled: no system broker');
+    }
 
-    this.discover(30000); // clear cache and do discovery in background
+    this.discoverConnections()
+      .then(() => {
+        this.discover(30000);
+      });
+  }
+
+  private async discoverConnections(): Promise<void> {
+    if (!this.systemBroker) {
+      debug.monitor.error('Failed to discover current connections: no system broker');
+      return;
+    }
+
+    for await (const server of this.systemBroker.requestMany<
+      ServerPingOptions,
+      ServerPingResponse
+    >(
+      '$SYS.REQ.SERVER.PING',
+      {},
+      {
+        timeout: 3000,
+      },
+    )) {
+      debug.monitor.info(`Found server ${server.server.id}`);
+      const connz = await this.systemBroker.request<ServerConnzOptions, ServerConnz>(
+        `$SYS.REQ.SERVER.${server.server.id}.CONNZ`,
+        { auth: true },
+      );
+
+      debug.monitor.info(`Server ${server.server.id} connections: ${connz.data.connections.map((c) => c.cid)}`);
+
+      for (const connection of connz.data.connections) {
+        this.connections[connection.cid] = {
+          client: {
+            id: connection.cid,
+            host: connection.ip,
+            start: connection.start,
+            acc: connection.account,
+            user: connection.authorized_user,
+          },
+          server: {
+            name: server.server.name,
+            id: server.server.id,
+            host: server.server.host,
+            ver: server.server.ver,
+          },
+        };
+
+        for (const service of this.services) {
+          const clientId = this.getServiceClientId(service);
+          if (clientId) {
+            const conn = this.connections[clientId];
+            if (conn)
+              service.connection = conn;
+          }
+        }
+      }
+    }
   }
 
   private handleServiceRegistration(data: MicroserviceRegistration): void {
@@ -52,15 +161,22 @@ export class Monitor extends EventEmitter {
       this.saveService(data.info);
   }
 
+  private async handleAccountConnect(msg: Message<UserConnectEvent>): Promise<void> {
+    const connection = msg.data;
+    this.connections[connection.client.id] = msg.data;
+  }
+
   private async handleAccountDisconnect(msg: Message<UserDisconnectEvent>): Promise<void> {
-    const clientId = msg.data.client.id;
+    const connection = msg.data;
+
+    const clientId = connection.client.id;
 
     let count = 0;
     let idx = 0;
     while (idx < this.services.length) {
       const service = this.services[idx];
 
-      if (this.getServiceClientId(service) === clientId) {
+      if (this.getServiceConnectionInfo(service)?.client.id === clientId) {
         const removed = this.services.splice(idx, 1);
         this.emit('removed', removed[0]);
         count++;
@@ -71,17 +187,29 @@ export class Monitor extends EventEmitter {
 
     debug.monitor.info(`Client ${clientId} disconnected, removing ${count} microservices`);
 
+    delete (this.connections[connection.client.id]);
+
     this.emit('change', this.services);
   }
 
   private getServiceClientId(service: MicroserviceInfo): number | undefined {
-    return Number(service.metadata['_nats.client.id']);
+    const clientId = Number(service.metadata['_nats.client.id']);
+    return Number.isNaN(clientId) ? undefined : clientId;
+  }
+
+  private getServiceConnectionInfo(service: MicroserviceInfo): UserConnectEvent | undefined {
+    const clientId = Number(service.metadata['_nats.client.id']);
+    if (Number.isNaN(clientId))
+      return undefined;
+
+    return this.connections[clientId];
   }
 
   private saveService(service: MicroserviceInfo): void {
     const idx = this.services.findIndex((svc) => svc.id === service.id);
+    const connection = this.getServiceConnectionInfo(service);
 
-    debug.monitor.info(`Found ${idx >= 0 ? '' : 'new '}microservice ${service.name}.${service.id} on client ${this.getServiceClientId(service)}`);
+    debug.monitor.info(`${idx >= 0 ? 'Updated' : 'New'} microservice ${service.name}.${service.id} on client ${connection?.client.id}`);
 
     if (idx >= 0) {
       this.services[idx] = {
@@ -94,6 +222,7 @@ export class Monitor extends EventEmitter {
       this.services.push({
         firstFoundAt: new Date(),
         lastFoundAt: new Date(),
+        connection: connection,
         ...service,
       });
 
@@ -119,13 +248,8 @@ export class Monitor extends EventEmitter {
     timeout: number,
     options?: Partial<MonitorDiscoveryOptions>,
   ): Promise<void> {
-    const l = this.services.length;
-    if (!options?.doNotClear && l > 0) {
-      debug.monitor.info(`Forgetting ${l} known microservices and starting from scratch`);
-      this.services.splice(0, l);
-    }
 
-    const services = await this.broker.requestMany<string, MicroserviceInfo>(
+    const servicesIterator = this.broker.requestMany<string, MicroserviceInfo>(
       '$SRV.INFO',
       '',
       {
@@ -134,8 +258,24 @@ export class Monitor extends EventEmitter {
       },
     );
 
-    for await (const service of services)
+    const services: MicroserviceInfo[] = [];
+    for await (const service of servicesIterator)
+      services.push(service);
+
+    for (const service of services)
       this.saveService(service);
+
+    if (!options?.doNotClear) {
+
+      const servicesToForger = this.services
+        .filter((oldSvc) => !services.some((newSvc) => newSvc.id === oldSvc.id));
+
+      if (servicesToForger.length > 0) {
+        debug.monitor.info(`Removing ${servicesToForger} microservices that haven't responded during discovery`);
+        for (const serviceToForger of servicesToForger)
+          this.removeService(serviceToForger);
+      }
+    }
   }
 
   public startPeriodicDiscovery(

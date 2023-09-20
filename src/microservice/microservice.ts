@@ -13,12 +13,12 @@ import {
 
 export class Microservice {
 
-  private readonly discovery: Discovery;
+  public readonly discovery: Discovery;
 
   private readonly startedMethods: Record<string, MessageHandler<unknown>> = {};
 
   constructor(
-    private readonly broker: Broker,
+    public readonly broker: Broker,
     config: MicroserviceConfig,
   ) {
     this.discovery = new Discovery(broker, config);

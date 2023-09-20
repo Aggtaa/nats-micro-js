@@ -5,7 +5,7 @@ import { ZodError } from 'zod';
 
 import { debug } from './debug.js';
 import {
-  Handler, MessageHandler, MicroserviceMethodConfig, Sender,
+  Handler, MessageHandler, MicroserviceMethodConfig, Sender, Subject,
 } from './types/index.js';
 
 export function randomId(): string {
@@ -111,4 +111,18 @@ export type Action = (...args: any[]) => any;
 export function wrapThread<T extends Action>(threadId: string, callback: T): T {
   threadContext.init(threadId);
   return callback;
+}
+
+export function subjectToStr(subject: Subject): string {
+  if (typeof (subject) === 'string')
+    return subject;
+
+  if ('method' in subject) {
+    if ('instance' in subject)
+      return `${subject.microservice}.${subject.instance}.${subject.method}`;
+
+    return `${subject.microservice}.${subject.method}`;
+  }
+
+  throw new Error('Unknown subject format');
 }

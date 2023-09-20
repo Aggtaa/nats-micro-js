@@ -1,15 +1,17 @@
 {
   "name": "nats-micro",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "NATS micro compatible extra-lightweight microservice library",
   "main": "lib/esm/index.js",
   "scripts": {
     "compile": "tsc --build ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
-    "build:clean": "rm -rf lib/*", 
+    "build:clean": "rm -rf lib/*",
     "build": "npm run build:clean && npm run compile",
     "prepublishOnly": "npm run test && npm run build",
     "lint": "eslint . --ext .ts,.tsx",
-    "test": "echo 'No tests yet'"
+    "test": "npm run test:run && npm run test:badge",
+    "test:run": "c8 --reporter=html --reporter=json-summary --all ts-mocha",
+    "test:badge": "npx coverage-badge-creator"
   },
   "type": "module",
   "keywords": [
@@ -25,7 +27,7 @@
     "emit",
     "event"
   ],
-   "exports": {
+  "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
       "require": "./lib/cjs/index.js",
@@ -59,6 +61,7 @@
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "clean-package": "^2.2.0",
+    "coverage-badge-creator": "^1.0.18",
     "eslint": "^8.34.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-import-resolver-lerna": "^2.0.0",
@@ -80,5 +83,24 @@
     "ts-mocha": "^10.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^4.9.5"
+  },
+  "mocha": {
+    "extension": [
+      ".ts",
+      ".js"
+    ],
+    "spec": [
+      "tests/**/*.test.ts"
+    ],
+    "recursive": true,
+    "asyncOnly": true,
+    "exit": true,
+    "timeout": 10000,
+    "fullTrace": true,
+    "bail": true,
+    "node-option": [
+      "experimental-specifier-resolution=node",
+      "loader=ts-node/esm"
+    ]
   }
 }
