@@ -131,11 +131,15 @@ export class Discovery {
     return {
       name: this.config.name,
       id: this.id,
-      version: this.config.version ?? '0.0.0',
+      version: this.config.version,
       metadata: {
         '_nats.client.created.library': 'nats-micro',
         '_nats.client.created.version': localConfig.version,
         '_nats.client.id': String(this.broker.clientId),
+        ...(!isUndefined(this.broker.name)
+          ? { 'nats.micro.ext.v1.service.node': this.broker.name }
+          : {}
+        ),
         ...this.config.metadata,
       },
     };
@@ -154,11 +158,10 @@ export class Discovery {
   public getMethodSubject<R, T>(
     name: string,
     method: MicroserviceMethodConfig<R, T>,
-    local: boolean = false,
   ): string {
     if (method.subject)
       return method.subject;
-    if (local)
+    if (method.local)
       return `${this.config.name}.${this.id}.${name}`;
     return `${this.config.name}.${name}`;
   }
@@ -173,9 +176,9 @@ export class Discovery {
         .map(([n, m]) => {
           const metadata = { ...m.metadata };
           if (m.unbalanced)
-            metadata['com.optimacros.nats.micro.v1.method.unbalanced'] = 'true';
+            metadata['nats.micro.ext.v1.method.unbalanced'] = 'true';
           if (m.local)
-            metadata['com.optimacros.nats.micro.v1.method.local'] = 'true';
+            metadata['nats.micro.ext.v1.method.local'] = 'true';
 
           return {
             ...this.makeMethodData(n, m),

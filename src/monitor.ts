@@ -123,6 +123,11 @@ export class Monitor extends EventEmitter {
         { auth: true },
       );
 
+      if (!connz) {
+        debug.monitor.error(`Server ${server.server.id} did not response CONNZ request`);
+        return;
+      }
+
       debug.monitor.info(`Server ${server.server.id} connections: ${connz.data.connections.map((c) => c.cid)}`);
 
       for (const connection of connz.data.connections) {

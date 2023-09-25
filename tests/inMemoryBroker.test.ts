@@ -8,6 +8,8 @@ const broker = new InMemoryBroker();
 
 describe('InMemoryBroker', function () {
 
+  this.slow(3000);
+
   afterEach(function () {
     broker.offAll();
   });

@@ -162,6 +162,7 @@ module.exports = {
     'dot-notation': 'off',
     'no-case-declarations': 'off',
     'no-console': 'error',
+    'no-use-before-define': 'off',
     semi: 'error',
     'no-lonely-if': 'off',
     '@typescript-eslint/no-inferrable-types': 'off',

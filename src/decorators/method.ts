@@ -9,6 +9,8 @@ export type MethodDecoratorOptions<T, R> =
   { name?: string } &
   PartialBy<Omit<MicroserviceMethodConfig<R, T>, 'handler'>, 'subject' | 'metadata'>;
 
+type Method<T, R> = ((request?: T) => Promise<R>) | ((request?: T) => R);
+
 export function method<
   T extends z.ZodType<any, any, any>,
   R extends z.ZodType<any, any, any>,
@@ -18,7 +20,7 @@ export function method<
     target: unknown,
     key: string | symbol,
     descriptor: TypedPropertyDescriptor<((request?: z.infer<T>) => any)>,
-  ): TypedPropertyDescriptor<((request?: z.infer<T>) => Promise<z.infer<R>>)> | void => {
+  ): TypedPropertyDescriptor<Method<z.infer<T>, z.infer<R>>> | void => {
 
     const name = options?.name ?? camelCase(String(key));
 

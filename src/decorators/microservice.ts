@@ -4,23 +4,28 @@ import { storage } from './storage.js';
 import { MicroserviceConfig } from '../types/index.js';
 import { camelCase } from '../utils.js';
 
-// export function microservice() {
-//   console.log('microservice(): factory evaluated');
-//   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-//     console.log('microservice(): called');
-//   };
-// }
+export type MicroserviceDecoratorOptions<T> =
+  Partial<
+    Pick<MicroserviceConfig<T>,
+      'name' | 'description' | 'version' | 'metadata' | 'stopHandler'>
+  >;
 
-export type MicroserviceDecoratorOptions =
-  Partial<Pick<MicroserviceConfig, 'name' | 'description' | 'version' | 'metadata'>>;
-
-export function microservice(options?: MicroserviceDecoratorOptions) {
-  return <T>(constructor: new () => T): new () => T => {
+export function microservice<
+  T,
+  C extends any[],
+>(
+  options?: MicroserviceDecoratorOptions<T>,
+): any {
+  return (
+    target: { new(...args: C): T },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    context: any,
+  ): { new(...args: C): T } | void => {
 
     const name = options?.name
-      ?? camelCase(constructor.name.replace(/microservice/i, ''));
+      ?? camelCase(target.name.replace(/microservice/i, ''));
 
-    const ms = storage.ensureAdded(constructor.prototype);
+    const ms = storage.ensureAdded<T>(target.prototype);
 
     ms.config = {
       ...ms.config,
@@ -30,7 +35,5 @@ export function microservice(options?: MicroserviceDecoratorOptions) {
       version: options?.version ?? '0.0.0',
       metadata: options?.metadata ?? {},
     };
-
-    return constructor;
   };
 }

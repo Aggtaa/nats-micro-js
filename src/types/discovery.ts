@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { MessageMaybeReplyTo, HandlerPayload } from './broker.js';
+import { HandlerPayload } from './broker.js';
 import { MaybePromise } from './types.js';
 
 // https://pkg.go.dev/github.com/nats-io/nats.go/micro
@@ -15,13 +15,15 @@ export type MicroserviceMethodConfig<T, R> = {
   local?: boolean,
 }
 
-export type MicroserviceConfig = {
+export type MicroserviceConfig<T = unknown> = {
   name: string;
   description: string;
   version: string;
   metadata?: Record<string, string>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   methods: Record<string, MicroserviceMethodConfig<any, any>>,
+
+  stopHandler?: keyof T;
 }
 
 export type BaseMicroserviceData = {

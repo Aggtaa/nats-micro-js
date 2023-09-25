@@ -26,6 +26,10 @@ export class NatsBroker implements Broker {
   constructor(public readonly options: nats.ConnectionOptions) {
   }
 
+  public get name(): string {
+    return this.options.name ?? (process.env.MICROSERVICE_NODE_NAME ?? '');
+  }
+
   public async connect(): Promise<this> {
     debug.broker.info(`Connecting to ${this.options.servers} as "${this.options.name}"`);
     try {

@@ -14,6 +14,8 @@ export class InMemoryBroker implements Broker {
 
   public readonly clientId = 0;
 
+  public readonly name = 'test';
+
   createInbox(): string {
     return `_INBOX.${Math.floor(Math.random() * 1e10)}`;
   }
@@ -21,6 +23,7 @@ export class InMemoryBroker implements Broker {
   public on<T>(
     subject: Subject,
     listener: MessageHandler<T>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     queue?: string,
   ): void {
     this.ee.on(subjectToStr(subject), listener);
@@ -98,7 +101,7 @@ export class InMemoryBroker implements Broker {
     subject: Subject,
     data: T,
     options?: RequestOptions,
-  ): Promise<R> {
+  ): Promise<R | undefined> {
     const results = this.requestMany<T, R>(
       subject,
       data,
@@ -109,6 +112,6 @@ export class InMemoryBroker implements Broker {
     if (!result.done)
       return result.value;
 
-    throw new Error('Request timed out');
+    return undefined;
   }
 }

@@ -74,7 +74,7 @@ export class Microservice {
     this.startedMethods[name] = methodWrap as MessageHandler<unknown>;
 
     this.broker.on<R>(
-      this.discovery.getMethodSubject(name, method, method.local),
+      this.discovery.getMethodSubject(name, method),
       methodWrap,
       method.unbalanced || method.local ? undefined : 'q',
     );
@@ -86,7 +86,7 @@ export class Microservice {
   ): Promise<void> {
 
     this.broker.off<R>(
-      this.discovery.getMethodSubject(name, method, method.local),
+      this.discovery.getMethodSubject(name, method),
       this.startedMethods[name],
     );
 

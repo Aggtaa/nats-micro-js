@@ -6,6 +6,8 @@ import {
 export interface Broker extends Sender {
   get clientId(): number | undefined;
 
+  get name(): string;
+
   createInbox(): string;
 
   on<T>(
@@ -39,5 +41,5 @@ export interface Broker extends Sender {
     subject: Subject,
     data: T,
     options?: RequestOptions,
-  ): Promise<R>;
+  ): Promise<R | undefined>;
 }

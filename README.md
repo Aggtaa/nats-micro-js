@@ -1,6 +1,6 @@
 # NATS Microservice Library
 
-![](https://img.shields.io/badge/Coverage-38%25-F2C572.svg?style=flat&prefix=$coverage$)
+![](https://img.shields.io/badge/Coverage-85%25-83A603.svg?style=flat&prefix=$coverage$)
 
 
 
@@ -16,7 +16,7 @@ It also supports service schema discovery which is not (yet?) supported by `nats
 
 ## Limitations / TODO
 
-1. Automatic type schemas and validation is inclomplete
+1. Automatic type schemas and validation is incomplete
 2. No way to get response headers when using request method. Use createInbox => on => send => off sequence instead
 3. `InMemoryBroker` mock class does not use queue groups and thus does not load balance
 
