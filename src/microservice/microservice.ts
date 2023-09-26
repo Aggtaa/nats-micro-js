@@ -21,7 +21,13 @@ export class Microservice {
     public readonly broker: Broker,
     config: MicroserviceConfig | (() => MicroserviceConfig),
   ) {
-    this.discovery = new Discovery(broker, config);
+    this.discovery = new Discovery(
+      broker,
+      config,
+      {
+        transformConfig: this.transformConfig.bind(this),
+      },
+    );
   }
 
   public static async create(
@@ -58,6 +64,25 @@ export class Microservice {
 
   public get config(): Readonly<MicroserviceConfig> {
     return Object.freeze(this.discovery.config);
+  }
+
+  private transformConfig(config: MicroserviceConfig): MicroserviceConfig {
+    return {
+      ...config,
+      methods: {
+        ...config.methods,
+
+        microservice_stop: {
+          handler: this.handleStop.bind(this),
+          metadata: {
+            'nats.micro.ext.v1.feature': 'microservice_stop',
+            'nats.micro.ext.v1.feature.params': `{"name":"${config.name}","id":"${this.id}"}`,
+          },
+          unbalanced: true,
+          local: true,
+        },
+      },
+    };
   }
 
   private async startMethod<R, T>(
@@ -107,6 +132,10 @@ export class Microservice {
       await this.startMethod(name, method);
 
     return this;
+  }
+
+  private async handleStop(): Promise<void> {
+    await this.stop();
   }
 
   public async stop(): Promise<this> {

@@ -22,6 +22,10 @@ const emptyMethodProfile: MethodProfile = {
   average_processing_time: 0,
 };
 
+export type DiscoveryOptions = {
+  transformConfig?: (config: MicroserviceConfig) => MicroserviceConfig;
+};
+
 export class Discovery {
 
   public readonly id: string;
@@ -32,9 +36,12 @@ export class Discovery {
   private readonly handlePingWrap: MessageHandler<void>;
   private readonly handleStatsWrap: MessageHandler<void>;
 
+  private readonly lateAddedMethods: MicroserviceConfig['methods'] = {};
+
   constructor(
     private readonly broker: Broker,
     public readonly configOrGetter: MicroserviceConfig | (() => MicroserviceConfig),
+    private readonly options: DiscoveryOptions = {},
   ) {
     this.startedAt = new Date();
     this.id = randomId();
@@ -45,11 +52,24 @@ export class Discovery {
     this.handleStatsWrap = wrapMethod(this.broker, wrapThread(this.id, this.handleStats.bind(this)), 'handleStats');
   }
 
-  public get config(): MicroserviceConfig {
+  public get originalConfig(): MicroserviceConfig {
     if (typeof (this.configOrGetter) === 'function')
       return this.configOrGetter();
 
     return this.configOrGetter;
+  }
+
+  public get config(): MicroserviceConfig {
+    let config = this.originalConfig;
+    if (this.options.transformConfig)
+      config = this.options.transformConfig(config);
+
+    config.methods = {
+      ...config.methods,
+      ...this.lateAddedMethods,
+    };
+
+    return config;
   }
 
   public async start(): Promise<this> {
@@ -112,7 +132,7 @@ export class Discovery {
     name: string,
     method: MicroserviceMethodConfig<R, T>,
   ): void {
-    this.config.methods[name] = method;
+    this.lateAddedMethods[name] = method;
   }
 
   public profileMethod(

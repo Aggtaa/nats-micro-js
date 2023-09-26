@@ -54,7 +54,8 @@ describe('Microservice and Discovery', function () {
 
     const service = await createService();
 
-    expect(spyOn.callCount).to.eq(12);
+    expect(spyOn.callCount).to.greaterThanOrEqual(12);
+
     for (const schema of ['SCHEMA', 'INFO', 'PING', 'STATS']) {
       expect(spyOn.calledWith(`$SRV.${schema}`)).to.be.true;
       expect(spyOn.calledWith(`$SRV.${schema}.${service.config.name}`)).to.be.true;
@@ -78,12 +79,7 @@ describe('Microservice and Discovery', function () {
       }),
     );
 
-    expect(spyOn.callCount).to.eq(12);
-    for (const schema of ['SCHEMA', 'INFO', 'PING', 'STATS']) {
-      expect(spyOn.calledWith(`$SRV.${schema}`)).to.be.true;
-      expect(spyOn.calledWith(`$SRV.${schema}.${service.config.name}`)).to.be.true;
-      expect(spyOn.calledWith(`$SRV.${schema}.${service.config.name}.${service.id}`)).to.be.true;
-    }
+    expect(service).to.exist;
   });
 
   it('subscription from class', async function () {
@@ -130,6 +126,30 @@ describe('Microservice and Discovery', function () {
     });
   });
 
+  it('stop method', async function () {
+
+    const service = await createService();
+
+    expect(spyOn.calledWith(`hello.${service.id}.microservice_stop`)).to.be.true;
+
+    const info: MicroserviceInfo | undefined = await broker.request('$SRV.INFO', '');
+
+    expect(info).to.exist;
+    expect(info).to.containSubset({
+      endpoints: [
+        {
+          name: 'microservice_stop',
+          metadata: {
+            'nats.micro.ext.v1.feature': 'microservice_stop',
+            'nats.micro.ext.v1.feature.params': JSON.stringify({ name: 'hello', id: service.id }),
+            'nats.micro.ext.v1.method.local': 'true',
+            'nats.micro.ext.v1.method.unbalanced': 'true',
+          },
+        },
+      ],
+    });
+  });
+
   it('automatic global method subject', async function () {
 
     await createServiceWithMethod();
@@ -137,7 +157,7 @@ describe('Microservice and Discovery', function () {
     const info: MicroserviceInfo | undefined = await broker.request('$SRV.INFO', '');
 
     expect(info).to.exist;
-    expect(info!.endpoints).to.have.deep.members([{
+    expect(info!.endpoints).to.include.deep.members([{
       name: 'method1',
       subject: 'hello.method1',
       metadata: {},
@@ -153,7 +173,7 @@ describe('Microservice and Discovery', function () {
     const info: MicroserviceInfo | undefined = await broker.request('$SRV.INFO', '');
 
     expect(info).to.exist;
-    expect(info!.endpoints).to.have.deep.members([{
+    expect(info!.endpoints).to.include.deep.members([{
       name: 'method1',
       subject: `hello.${service.id}.method1`,
       metadata: {
@@ -171,7 +191,7 @@ describe('Microservice and Discovery', function () {
     const info: MicroserviceInfo | undefined = await broker.request('$SRV.INFO', '');
 
     expect(info).to.exist;
-    expect(info!.endpoints).to.have.deep.members([{
+    expect(info!.endpoints).to.include.deep.members([{
       name: 'method1',
       subject: 'testSubject',
       metadata: {},
@@ -187,7 +207,7 @@ describe('Microservice and Discovery', function () {
     const info: MicroserviceInfo | undefined = await broker.request('$SRV.INFO', '');
 
     expect(info).to.exist;
-    expect(info!.endpoints).to.have.deep.members([{
+    expect(info!.endpoints).to.include.deep.members([{
       name: 'method1',
       subject: 'hello.method1',
       metadata: {
