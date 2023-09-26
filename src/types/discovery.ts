@@ -15,15 +15,13 @@ export type MicroserviceMethodConfig<T, R> = {
   local?: boolean,
 }
 
-export type MicroserviceConfig<T = unknown> = {
+export type MicroserviceConfig = {
   name: string;
   description: string;
   version: string;
   metadata?: Record<string, string>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   methods: Record<string, MicroserviceMethodConfig<any, any>>,
-
-  stopHandler?: keyof T;
 }
 
 export type BaseMicroserviceData = {

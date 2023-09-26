@@ -126,27 +126,47 @@ describe('Microservice and Discovery', function () {
     });
   });
 
-  it('stop method', async function () {
+  describe('stop method', function () {
 
-    const service = await createService();
+    it('subscription', async function () {
 
-    expect(spyOn.calledWith(`hello.${service.id}.microservice_stop`)).to.be.true;
+      const service = await createService();
 
-    const info: MicroserviceInfo | undefined = await broker.request('$SRV.INFO', '');
+      expect(spyOn.calledWith(`hello.${service.id}.microservice_stop`)).to.be.true;
+    });
 
-    expect(info).to.exist;
-    expect(info).to.containSubset({
-      endpoints: [
-        {
-          name: 'microservice_stop',
-          metadata: {
-            'nats.micro.ext.v1.feature': 'microservice_stop',
-            'nats.micro.ext.v1.feature.params': JSON.stringify({ name: 'hello', id: service.id }),
-            'nats.micro.ext.v1.method.local': 'true',
-            'nats.micro.ext.v1.method.unbalanced': 'true',
+    it('call', async function () {
+
+      const service = await createService();
+
+      const info: MicroserviceInfo | undefined = await broker.request('$SRV.INFO', '');
+
+      expect(info).to.exist;
+      expect(info).to.containSubset({
+        endpoints: [
+          {
+            name: 'microservice_stop',
+            metadata: {
+              'nats.micro.ext.v1.feature': 'microservice_stop',
+              'nats.micro.ext.v1.feature.params': JSON.stringify({ name: 'hello', id: service.id }),
+              'nats.micro.ext.v1.method.local': 'true',
+              'nats.micro.ext.v1.method.unbalanced': 'true',
+            },
           },
-        },
-      ],
+        ],
+      });
+    });
+
+    it('event', async function () {
+
+      const service = await createService();
+
+      const spy = Sinon.spy();
+      service.on('close', spy);
+
+      await broker.send(`hello.${service.id}.microservice_stop`, '');
+
+      expect(spy.calledOnce).to.be.true;
     });
   });
 

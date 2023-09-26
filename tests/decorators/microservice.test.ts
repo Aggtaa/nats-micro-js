@@ -127,19 +127,4 @@ describe('@microservice decorator', function () {
       expect(config?.metadata).to.contain({ field1: '1', field2: '2' });
     });
   });
-
-  it('stopHandler', async function () {
-
-    @microservice({ stopHandler: 'handleStop' })
-    class Test {
-
-      public async handleStop(): Promise<void> {
-        // nothing here
-      }
-    }
-
-    const config = storage.getConfig(new Test());
-
-    expect(config).to.contain({ stopHandler: 'handleStop' });
-  });
 });

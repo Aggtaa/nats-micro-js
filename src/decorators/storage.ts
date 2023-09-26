@@ -1,21 +1,21 @@
 import { MicroserviceConfig } from '../types/index.js';
 
-export type StoredMicroservice<T> = {
+export type StoredMicroservice = {
   constructor: unknown;
-  config: MicroserviceConfig<T>;
+  config: MicroserviceConfig;
 }
 
 export class Storage {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public readonly microservices: StoredMicroservice<any>[] = [];
+  public readonly microservices: StoredMicroservice[] = [];
 
-  public ensureAdded<T>(constructor: unknown): StoredMicroservice<T> {
+  public ensureAdded<T>(constructor: unknown): StoredMicroservice {
     const existing = this.microservices.find((ms) => ms.constructor === constructor);
     if (existing)
       return existing;
 
-    const added: StoredMicroservice<T> = {
+    const added: StoredMicroservice = {
       constructor,
       config: {
         name: '',

@@ -4,17 +4,17 @@ import { storage } from './storage.js';
 import { MicroserviceConfig } from '../types/index.js';
 import { camelCase } from '../utils.js';
 
-export type MicroserviceDecoratorOptions<T> =
+export type MicroserviceDecoratorOptions =
   Partial<
-    Pick<MicroserviceConfig<T>,
-      'name' | 'description' | 'version' | 'metadata' | 'stopHandler'>
+    Pick<MicroserviceConfig,
+      'name' | 'description' | 'version' | 'metadata'>
   >;
 
 export function microservice<
   T,
   C extends any[],
 >(
-  options?: MicroserviceDecoratorOptions<T>,
+  options?: MicroserviceDecoratorOptions,
 ): any {
   return (
     target: { new(...args: C): T },

@@ -1,4 +1,5 @@
 import { threadContext } from 'debug-threads-ns';
+import EventEmitter from 'events';
 
 import { Discovery } from './discovery.js';
 import { Broker } from '../broker.js';
@@ -11,7 +12,13 @@ import {
   errorToString, wrapMethodSafe, wrapThread,
 } from '../utils.js';
 
+export type MicroserviceOptions = {
+  noStopMethod?: boolean;
+}
+
 export class Microservice {
+
+  private readonly ee = new EventEmitter();
 
   public readonly discovery: Discovery;
 
@@ -20,12 +27,15 @@ export class Microservice {
   constructor(
     public readonly broker: Broker,
     config: MicroserviceConfig | (() => MicroserviceConfig),
+    private readonly options?: MicroserviceOptions,
   ) {
     this.discovery = new Discovery(
       broker,
       config,
       {
-        transformConfig: this.transformConfig.bind(this),
+        transformConfig: this.options?.noStopMethod
+          ? undefined
+          : this.transformConfig.bind(this),
       },
     );
   }
@@ -64,6 +74,18 @@ export class Microservice {
 
   public get config(): Readonly<MicroserviceConfig> {
     return Object.freeze(this.discovery.config);
+  }
+
+  public on(event: 'close', listener: () => void): void {
+    this.ee.on(event, listener);
+  }
+
+  public off(event: 'close', listener: () => void): void {
+    this.ee.off(event, listener);
+  }
+
+  private emit(event: 'close'): void {
+    this.ee.emit(event);
   }
 
   private transformConfig(config: MicroserviceConfig): MicroserviceConfig {
@@ -135,6 +157,7 @@ export class Microservice {
   }
 
   private async handleStop(): Promise<void> {
+    this.emit('close');
     await this.stop();
   }
 
