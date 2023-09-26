@@ -1,3 +1,3 @@
 export const localConfig = {
-  version: '0.21.1',
+  version: '0.21.2',
 };

@@ -43,8 +43,9 @@ export class Microservice {
   public static async create(
     broker: Broker,
     config: MicroserviceConfig | (() => MicroserviceConfig),
+    options?: MicroserviceOptions,
   ): Promise<Microservice> {
-    const ms = new Microservice(broker, config);
+    const ms = new Microservice(broker, config, options);
     await ms.start();
     return ms;
   }
@@ -52,6 +53,7 @@ export class Microservice {
   public static async createFromClass<T extends object>(
     broker: Broker,
     target: T,
+    options?: MicroserviceOptions,
   ): Promise<Microservice> {
     const config = storage.getConfig(target);
     if (!config)
@@ -60,7 +62,7 @@ export class Microservice {
     for (const method of Object.values(config.methods))
       method.handler = method.handler.bind(target);
 
-    const service = await Microservice.create(broker, config);
+    const service = await Microservice.create(broker, config, options);
 
     /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     (target as any)['__microservice'] = service;

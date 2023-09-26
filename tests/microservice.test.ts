@@ -5,7 +5,7 @@ import Sinon from 'sinon';
 import {
   microservice, method,
   Microservice, MicroserviceConfig, MicroserviceInfo, MicroserviceMethodConfig,
-  MicroservicePing, MicroserviceSchema, MicroserviceStats,
+  MicroservicePing, MicroserviceSchema, MicroserviceStats, MicroserviceOptions,
 } from '../src/index.js';
 import { InMemoryBroker } from '../src/inMemoryBroker.js';
 
@@ -15,6 +15,7 @@ const spyOff = Sinon.spy(broker, 'off');
 
 const createService = (
   data?: Partial<MicroserviceConfig>,
+  options?: MicroserviceOptions,
 ): Promise<Microservice> => Microservice.create(
   broker,
   {
@@ -28,6 +29,7 @@ const createService = (
     },
     ...data,
   },
+  options,
 );
 
 const createServiceWithMethod = (
@@ -133,6 +135,13 @@ describe('Microservice and Discovery', function () {
       const service = await createService();
 
       expect(spyOn.calledWith(`hello.${service.id}.microservice_stop`)).to.be.true;
+    });
+
+    it('no stop method', async function () {
+
+      const service = await createService({}, { noStopMethod: true });
+
+      expect(spyOn.calledWith(`hello.${service.id}.microservice_stop`)).to.be.false;
     });
 
     it('call', async function () {
