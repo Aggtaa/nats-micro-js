@@ -19,14 +19,14 @@ export class Microservice {
 
   constructor(
     public readonly broker: Broker,
-    config: MicroserviceConfig,
+    config: MicroserviceConfig | (() => MicroserviceConfig),
   ) {
     this.discovery = new Discovery(broker, config);
   }
 
   public static async create(
     broker: Broker,
-    config: MicroserviceConfig,
+    config: MicroserviceConfig | (() => MicroserviceConfig),
   ): Promise<Microservice> {
     const ms = new Microservice(broker, config);
     await ms.start();

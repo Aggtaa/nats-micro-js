@@ -62,6 +62,30 @@ describe('Microservice and Discovery', function () {
     }
   });
 
+  it('dynamic config', async function () {
+
+    const service = await Microservice.create(
+      broker,
+      () => ({
+        name: 'hello',
+        description: 'Hello service',
+        version: '5.5.5',
+        metadata: {
+          key1: 'value1',
+        },
+        methods: {
+        },
+      }),
+    );
+
+    expect(spyOn.callCount).to.eq(12);
+    for (const schema of ['SCHEMA', 'INFO', 'PING', 'STATS']) {
+      expect(spyOn.calledWith(`$SRV.${schema}`)).to.be.true;
+      expect(spyOn.calledWith(`$SRV.${schema}.${service.config.name}`)).to.be.true;
+      expect(spyOn.calledWith(`$SRV.${schema}.${service.config.name}.${service.id}`)).to.be.true;
+    }
+  });
+
   it('subscription from class', async function () {
 
     @microservice()

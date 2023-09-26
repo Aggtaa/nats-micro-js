@@ -34,7 +34,7 @@ export class Discovery {
 
   constructor(
     private readonly broker: Broker,
-    public readonly config: MicroserviceConfig,
+    public readonly configOrGetter: MicroserviceConfig | (() => MicroserviceConfig),
   ) {
     this.startedAt = new Date();
     this.id = randomId();
@@ -43,6 +43,13 @@ export class Discovery {
     this.handleInfoWrap = wrapMethod(this.broker, wrapThread(this.id, this.handleInfo.bind(this)), 'handleInfo');
     this.handlePingWrap = wrapMethod(this.broker, wrapThread(this.id, this.handlePing.bind(this)), 'handlePing');
     this.handleStatsWrap = wrapMethod(this.broker, wrapThread(this.id, this.handleStats.bind(this)), 'handleStats');
+  }
+
+  public get config(): MicroserviceConfig {
+    if (typeof (this.configOrGetter) === 'function')
+      return this.configOrGetter();
+
+    return this.configOrGetter;
   }
 
   public async start(): Promise<this> {
