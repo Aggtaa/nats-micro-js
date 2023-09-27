@@ -10,7 +10,7 @@ export class Storage {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public readonly microservices: StoredMicroservice[] = [];
 
-  public ensureAdded<T>(constructor: unknown): StoredMicroservice {
+  public ensureAdded(constructor: unknown): StoredMicroservice {
     const existing = this.microservices.find((ms) => ms.constructor === constructor);
     if (existing)
       return existing;

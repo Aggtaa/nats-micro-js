@@ -1,10 +1,11 @@
 {
   "name": "nats-micro",
-  "version": "0.21.2",
+  "version": "0.21.3",
   "description": "NATS micro compatible extra-lightweight microservice library",
-  "main": "lib/esm/index.js",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
   "scripts": {
-    "compile": "tsc --build ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
+    "compile": "tsc --build ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json && ./generate_build_pjsons.sh",
     "build:clean": "rm -rf lib/*",
     "build": "npm run build:clean && npm run compile",
     "prepublishOnly": "npm run test && npm run test:badge && npm run build",
@@ -26,25 +27,17 @@
     "emit",
     "event"
   ],
-  "exports": {
-    ".": {
-      "types": "./lib/types/index.d.ts",
-      "require": "./lib/cjs/index.js",
-      "import": "./lib/esm/index.js",
-      "default": "./lib/esm/index.js"
-    }
-  },
   "author": "Anton Zykov <npm@ormo.cc>",
   "license": "ISC",
   "homepage": "https://github.com/Aggtaa/nats-micro-js",
   "bugs": "https://github.com/Aggtaa/nats-micro-js/issues",
   "repository": "Aggtaa/nats-micro-js",
   "dependencies": {
-    "debug-threads-ns": "^0.2.2",
+    "debug-threads-ns": "^0.2.3",
     "errio": "^1.2.2",
     "fast-safe-stringify": "^2.1.1",
     "moment": "^2.29.4",
-    "nanoid": "^4.0.2",
+    "nanoid": "^3.3.5",
     "nats": "^2.16.0",
     "zod": "^3.22.2",
     "zod-to-json-schema": "^3.21.4"
@@ -58,6 +51,7 @@
     "@types/sinon": "^9.0.4",
     "@typescript-eslint/eslint-plugin": "^5.60.1",
     "@typescript-eslint/parser": "^5.60.1",
+    "c8": "^8.0.1",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-subset": "^1.6.0",
