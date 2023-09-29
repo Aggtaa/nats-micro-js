@@ -1,6 +1,6 @@
 {
   "name": "nats-micro",
-  "version": "0.21.3",
+  "version": "0.21.4",
   "description": "NATS micro compatible extra-lightweight microservice library",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
@@ -27,6 +27,14 @@
     "emit",
     "event"
   ],
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "require": "./lib/cjs/index.js",
+      "import": "./lib/esm/index.js",
+      "default": "./lib/cjs/index.js"
+    }
+  },
   "author": "Anton Zykov <npm@ormo.cc>",
   "license": "ISC",
   "homepage": "https://github.com/Aggtaa/nats-micro-js",
