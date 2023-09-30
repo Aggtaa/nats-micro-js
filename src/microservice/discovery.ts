@@ -160,7 +160,7 @@ export class Discovery {
       id: this.id,
       version: this.config.version,
       metadata: {
-        '_nats.client.created.library': 'nats-micro',
+        '_nats.client.created.library': localConfig.name,
         '_nats.client.created.version': localConfig.version,
         '_nats.client.id': String(this.broker.clientId),
         ...(!isUndefined(this.broker.name)

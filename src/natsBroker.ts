@@ -2,9 +2,10 @@ import * as nats from 'nats';
 
 import { Broker } from './broker.js';
 import { debug } from './debug.js';
+import { StatusError } from './statusError.js';
 import { TokenEventEmitter } from './tokenEventEmitter.js';
 import {
-  RequestOptions, SendOptions,
+  RequestOptions, SendOptions, BrokerResponse,
   Subject, RequestManyOptions, MessageHandler,
 } from './types/broker.js';
 import { errorToString, randomId, subjectToStr } from './utils.js';
@@ -92,7 +93,7 @@ export class NatsBroker implements Broker {
           msg.subject,
           {
             data: this.decode(msg),
-            headers: msg.headers,
+            headers: this.decodeHeaders(msg.headers),
             replyTo: msg.reply,
           },
         );
@@ -108,6 +109,30 @@ export class NatsBroker implements Broker {
         debug.broker.error(`Error decoding JSON from "${content}"`);
       }
     }
+  }
+
+  private encodeHeaders(headers?: Iterable<[string, string]>): nats.MsgHdrs {
+
+    const result = nats.headers();
+    if (headers)
+      for (const [k, v] of headers)
+        result.append(k, v);
+
+    return result;
+  }
+
+  private decodeHeaders(headers?: nats.MsgHdrs): [string, string][] {
+
+    if (!headers)
+      return [];
+
+    const result: [string, string][] = [];
+
+    for (const key of headers.keys())
+      for (const value of headers.values(key))
+        result.push([key, value]);
+
+    return result;
   }
 
   private subscribe(
@@ -169,17 +194,11 @@ export class NatsBroker implements Broker {
     if (!this.connection)
       throw new Error('Not connected');
 
-    const headers = nats.headers();
-    if (options?.headers)
-      for (const [k, vv] of options.headers)
-        for (const v of vv)
-          headers.append(k, v);
-
     await this.connection.publish(
       subjectToStr(subject),
       this.codec.encode(data),
       {
-        headers,
+        headers: this.encodeHeaders(options?.headers),
         reply: (options && options.replyTo)
           ? options.replyTo
           : undefined,
@@ -191,7 +210,7 @@ export class NatsBroker implements Broker {
     subject: Subject,
     data: T,
     options?: RequestManyOptions,
-  ): AsyncIterableIterator<R> {
+  ): AsyncIterableIterator<BrokerResponse<R>> {
     if (!this.connection)
       throw new Error('Not connected');
 
@@ -202,6 +221,7 @@ export class NatsBroker implements Broker {
         subjectToStr(subject),
         this.codec.encode(data),
         {
+          headers: this.encodeHeaders(options?.headers),
           noMux: true,
           strategy: (options?.limit ?? 0) < 0
             ? nats.RequestStrategy.Timer
@@ -218,7 +238,11 @@ export class NatsBroker implements Broker {
       const iterator = responses[Symbol.asyncIterator]();
       let result = await iterator.next();
       while (!result.done) {
-        yield this.codec.decode(result.value.data) as R;
+        yield {
+          data: this.codec.decode(result.value.data) as R,
+          headers: this.decodeHeaders(result.value.headers),
+          subject: result.value.subject,
+        };
         result = await iterator.next();
       }
     }
@@ -234,7 +258,7 @@ export class NatsBroker implements Broker {
     subject: Subject,
     data: T,
     options?: RequestOptions,
-  ): Promise<R> {
+  ): Promise<BrokerResponse<R>> {
     if (!this.connection)
       throw new Error('Not connected');
 
@@ -244,11 +268,27 @@ export class NatsBroker implements Broker {
       subjectToStr(subject),
       this.codec.encode(data),
       {
+        headers: this.encodeHeaders(options?.headers),
         noMux: true,
         reply: `_INBOX.${randomId()}`,
         timeout,
       },
     );
-    return this.codec.decode(res.data) as R;
+
+    const headers = this.decodeHeaders(res.headers);
+    const errorMessageHeader = headers.find((h) => h[0] === 'X-Error-Message');
+    const errorStatusHeader = headers.find((h) => h[0] === 'X-Error-Status');
+    if (errorMessageHeader) {
+      if (errorStatusHeader)
+        throw new StatusError(errorStatusHeader[1], errorMessageHeader[1]);
+      else
+        throw new Error(errorMessageHeader[1]);
+    }
+
+    return {
+      data: this.codec.decode(res.data) as R,
+      headers,
+      subject: res.subject,
+    };
   }
 }

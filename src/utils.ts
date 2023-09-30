@@ -3,9 +3,10 @@ import { nanoid } from 'nanoid';
 import { isUndefined } from 'util';
 import { ZodError } from 'zod';
 
+import { Broker } from './broker.js';
 import { debug } from './debug.js';
 import {
-  Handler, MessageHandler, MicroserviceMethodConfig, Sender, Subject,
+  Handler, MessageHandler, MicroserviceMethodConfig, Subject,
 } from './types/index.js';
 
 export function randomId(): string {
@@ -25,7 +26,7 @@ export function errorToString(error: unknown): string {
 }
 
 export function wrapMethod<T, R>(
-  broker: Sender,
+  broker: Broker,
   callback: Handler<T, R>,
   methodName: string,
 ): MessageHandler<T> {
@@ -45,7 +46,7 @@ export function wrapMethod<T, R>(
 }
 
 export function wrapMethodSafe<T, R>(
-  broker: Sender,
+  broker: Broker,
   callback: Handler<T, R>,
   methodName: string,
   method: MicroserviceMethodConfig<T, R>,
@@ -95,9 +96,22 @@ export function wrapMethodSafe<T, R>(
       debug.error(error);
 
       if ('replyTo' in msg && msg.replyTo) {
+
+        const headers: [string, string][] = [
+          ...(
+            (typeof (err) === 'object') && err && ('status' in err)
+              ? [['X-Error-Status', String(err.status)] as [string, string]]
+              : []
+          ),
+          ['X-Error-Message', error],
+        ];
+
         broker.send(
           msg.replyTo,
-          { error },
+          'undefined',
+          {
+            headers,
+          },
         );
       }
       // throw err;

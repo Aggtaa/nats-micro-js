@@ -43,7 +43,7 @@ describe('InMemoryBroker', function () {
       },
     );
 
-    expect(response).to.eq('papa');
+    expect(response.data).to.eq('papa');
   });
 
   it('request many', async function () {
@@ -55,7 +55,7 @@ describe('InMemoryBroker', function () {
     broker.on('hello', handler2);
 
     const responses: string[] = [];
-    for await (const response of await broker.requestMany<string, string>(
+    for await (const { data: response } of await broker.requestMany<string, string>(
       'hello',
       'mama',
       {
@@ -78,7 +78,7 @@ describe('InMemoryBroker', function () {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const responses: any[] = [];
-    for await (const response of await broker.requestMany<string, string>(
+    for await (const { data: response } of await broker.requestMany<string, string>(
       'hello',
       'mama',
       {

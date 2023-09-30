@@ -3,18 +3,24 @@ import { debug } from './debug.js';
 import { eventBucket } from './eventBucket.js';
 import { TokenEventEmitter } from './tokenEventEmitter.js';
 import {
-  MessageHandler, Subject,
+  MessageHandler, Subject, BrokerResponse,
   MessageMaybeReplyTo, RequestManyOptions, RequestOptions, SendOptions,
 } from './types/broker.js';
 import { subjectToStr } from './utils.js';
 
 export class InMemoryBroker implements Broker {
 
+  private static nextClientId = 0;
+
   private readonly ee = new TokenEventEmitter();
 
-  public readonly clientId = 0;
+  public readonly clientId: number;
 
   public readonly name = 'test';
+
+  constructor() {
+    this.clientId = InMemoryBroker.nextClientId++;
+  }
 
   createInbox(): string {
     return `_INBOX.${Math.floor(Math.random() * 1e10)}`;
@@ -60,7 +66,7 @@ export class InMemoryBroker implements Broker {
     subject: Subject,
     data: T,
     options?: RequestManyOptions,
-  ): AsyncIterableIterator<R> {
+  ): AsyncIterableIterator<BrokerResponse<R>> {
     debug.broker.debug(`Requesting ${JSON.stringify(data)} from ${JSON.stringify(subject)}`);
 
     const bucket = eventBucket<R>();
@@ -93,7 +99,11 @@ export class InMemoryBroker implements Broker {
       if ('done' in item)
         break;
       else
-        yield Promise.resolve(item.value);
+        yield Promise.resolve({
+          data: item.value,
+          headers: [],
+          subject: inbox,
+        });
     }
   }
 
@@ -101,7 +111,7 @@ export class InMemoryBroker implements Broker {
     subject: Subject,
     data: T,
     options?: RequestOptions,
-  ): Promise<R | undefined> {
+  ): Promise<BrokerResponse<R | undefined>> {
     const results = this.requestMany<T, R>(
       subject,
       data,
@@ -112,6 +122,9 @@ export class InMemoryBroker implements Broker {
     if (!result.done)
       return result.value;
 
-    return undefined;
+    return {
+      data: undefined,
+      subject: '',
+    };
   }
 }

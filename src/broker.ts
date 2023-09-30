@@ -1,9 +1,9 @@
 import {
   MessageHandler, RequestManyOptions, RequestOptions, SendOptions,
-  Sender, Subject,
+  Subject, BrokerResponse,
 } from './types/broker.js';
 
-export interface Broker extends Sender {
+export interface Broker {
   get clientId(): number | undefined;
 
   get name(): string;
@@ -35,11 +35,11 @@ export interface Broker extends Sender {
     subject: Subject,
     data: T,
     options?: RequestManyOptions,
-  ): AsyncIterable<R>;
+  ): AsyncIterable<BrokerResponse<R>>;
 
   request<T, R>(
     subject: Subject,
     data: T,
     options?: RequestOptions,
-  ): Promise<R | undefined>;
+  ): Promise<BrokerResponse<R | undefined>>;
 }

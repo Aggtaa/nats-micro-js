@@ -72,18 +72,17 @@ export type DiscoveredMicroservice = MicroserviceInfo & {
   connection: UserConnectEvent | undefined;
 }
 
-export class Monitor extends EventEmitter {
+export class Monitor {
 
   public readonly services: DiscoveredMicroservice[] = [];
   private discoveryInterval: NodeJS.Timer | undefined;
   private readonly connections: Record<string, UserConnectEvent> = {};
+  private readonly ee = new EventEmitter();
 
   constructor(
     private readonly broker: Broker,
     private readonly systemBroker?: Broker,
   ) {
-    super();
-
     const handleServiceRegistration = wrapMethod(this.broker, wrapThread('monitor', this.handleServiceRegistration.bind(this)), 'handleServiceStatus');
     broker.on(MicroserviceRegistrationSubject, handleServiceRegistration);
 
@@ -107,7 +106,7 @@ export class Monitor extends EventEmitter {
       return;
     }
 
-    for await (const server of this.systemBroker.requestMany<
+    for await (const { data: server } of this.systemBroker.requestMany<
       ServerPingOptions,
       ServerPingResponse
     >(
@@ -118,7 +117,7 @@ export class Monitor extends EventEmitter {
       },
     )) {
       debug.monitor.info(`Found server ${server.server.id}`);
-      const connz = await this.systemBroker.request<ServerConnzOptions, ServerConnz>(
+      const { data: connz } = await this.systemBroker.request<ServerConnzOptions, ServerConnz>(
         `$SYS.REQ.SERVER.${server.server.id}.CONNZ`,
         { auth: true },
       );
@@ -197,6 +196,20 @@ export class Monitor extends EventEmitter {
     this.emit('change', this.services);
   }
 
+  private emit(event: 'added' | 'removed', service: MicroserviceInfo): void;
+  private emit(event: 'change', services: MicroserviceInfo[]): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private emit(event: string, ...args: any[]): void {
+    this.ee.emit(event, ...args);
+  }
+
+  public on(event: 'added' | 'removed', listener: (service: MicroserviceInfo) => void): void;
+  public on(event: 'change', listener: (services: MicroserviceInfo[]) => void): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public on(event: string, listener: (...args: any[]) => void): void {
+    this.ee.on(event, listener);
+  }
+
   private getServiceClientId(service: MicroserviceInfo): number | undefined {
     const clientId = Number(service.metadata['_nats.client.id']);
     return Number.isNaN(clientId) ? undefined : clientId;
@@ -265,19 +278,19 @@ export class Monitor extends EventEmitter {
 
     const services: MicroserviceInfo[] = [];
     for await (const service of servicesIterator)
-      services.push(service);
+      services.push(service.data);
 
     for (const service of services)
       this.saveService(service);
 
     if (!options?.doNotClear) {
 
-      const servicesToForger = this.services
+      const servicesToForget = this.services
         .filter((oldSvc) => !services.some((newSvc) => newSvc.id === oldSvc.id));
 
-      if (servicesToForger.length > 0) {
-        debug.monitor.info(`Removing ${servicesToForger} microservices that haven't responded during discovery`);
-        for (const serviceToForger of servicesToForger)
+      if (servicesToForget.length > 0) {
+        debug.monitor.info(`Removing ${servicesToForget} microservices that haven't responded during discovery`);
+        for (const serviceToForger of servicesToForget)
           this.removeService(serviceToForger);
       }
     }

@@ -1,16 +1,19 @@
 {
   "name": "nats-micro",
-  "version": "0.21.4",
+  "version": "0.22.0",
   "description": "NATS micro compatible extra-lightweight microservice library",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "scripts": {
-    "compile": "tsc --build ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json && ./generate_build_pjsons.sh",
+    "compile:cjs": "cp src/__dirname.ts __dirname.bak && sed -i 's/dirname.fileURLToPath.import.meta.url../__dirname/' src/__dirname.ts && tsc --build ./tsconfig.cjs.json && ./generate_cjs_pjson.sh; mv __dirname.bak src/__dirname.ts",
+    "compile:esm": "tsc --build ./tsconfig.esm.json && ./generate_esm_pjson.sh",
+    "compile:types": "tsc --build ./tsconfig.types.json",
+    "compile": "npm run compile:cjs && npm run compile:esm && npm run compile:types",
     "build:clean": "rm -rf lib/*",
     "build": "npm run build:clean && npm run compile",
     "prepublishOnly": "npm run test && npm run test:badge && npm run build",
     "lint": "eslint . --ext .ts,.tsx",
-    "test": "c8 --reporter=html --reporter=json-summary --reporter=text-summary --include='src/**/*' --exclude='src/natsBroker.ts' --all ts-mocha",
+    "test": "c8 --reporter=html --reporter=lcovonly --reporter=json-summary --reporter=text-summary --include='src/**/*' --exclude='src/natsBroker.ts' --all ts-mocha",
     "test:badge": "npx coverage-badge-creator"
   },
   "type": "module",

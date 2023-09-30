@@ -4,6 +4,7 @@ import { storage } from '../../src/decorators/storage.js';
 import { microservice } from '../../src/index.js';
 
 describe('@microservice decorator', function () {
+
   describe('version', function () {
 
     it('automatic', async function () {
