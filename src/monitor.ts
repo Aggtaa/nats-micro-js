@@ -72,7 +72,13 @@ export type DiscoveredMicroservice = MicroserviceInfo & {
   connection: UserConnectEvent | undefined;
 }
 
+export type MonitorOptions = {
+  discoveryTimeout: number,
+}
+
 export class Monitor {
+
+  private readonly options: MonitorOptions;
 
   public readonly services: DiscoveredMicroservice[] = [];
   private discoveryInterval: NodeJS.Timer | undefined;
@@ -82,7 +88,13 @@ export class Monitor {
   constructor(
     private readonly broker: Broker,
     private readonly systemBroker?: Broker,
+    options: Partial<MonitorOptions> = {},
   ) {
+    this.options = {
+      discoveryTimeout: 5000,
+      ...options,
+    };
+
     const handleServiceRegistration = wrapMethod(this.broker, wrapThread('monitor', this.handleServiceRegistration.bind(this)), 'handleServiceStatus');
     broker.on(MicroserviceRegistrationSubject, handleServiceRegistration);
 
@@ -94,10 +106,8 @@ export class Monitor {
       debug.monitor.error('Connection established/dropped monitoring disabled: no system broker');
     }
 
-    this.discoverConnections()
-      .then(() => {
-        this.discover(30000);
-      });
+    this.discoverConnections();
+    this.discover(this.options.discoveryTimeout);
   }
 
   private async discoverConnections(): Promise<void> {
@@ -145,13 +155,16 @@ export class Monitor {
             ver: server.server.ver,
           },
         };
+      }
 
-        for (const service of this.services) {
-          const clientId = this.getServiceClientId(service);
-          if (clientId) {
-            const conn = this.connections[clientId];
-            if (conn)
-              service.connection = conn;
+      for (const service of this.services) {
+        const clientId = this.getServiceClientId(service);
+        if (clientId) {
+          const conn = this.connections[clientId];
+          if (conn) {
+            service.connection = conn;
+            debug.monitor.info(`Updated microservice ${service.name}.${service.id} to client ${clientId}'s connection`);
+            this.emit('added', service);
           }
         }
       }
@@ -216,18 +229,17 @@ export class Monitor {
   }
 
   private getServiceConnectionInfo(service: MicroserviceInfo): UserConnectEvent | undefined {
-    const clientId = Number(service.metadata['_nats.client.id']);
-    if (Number.isNaN(clientId))
-      return undefined;
+    const clientId = this.getServiceClientId(service);
 
-    return this.connections[clientId];
+    return clientId ? this.connections[clientId] : undefined;
   }
 
   private saveService(service: MicroserviceInfo): void {
     const idx = this.services.findIndex((svc) => svc.id === service.id);
+    const clientId = this.getServiceClientId(service);
     const connection = this.getServiceConnectionInfo(service);
 
-    debug.monitor.info(`${idx >= 0 ? 'Updated' : 'New'} microservice ${service.name}.${service.id} on client ${connection?.client.id}`);
+    debug.monitor.info(`${idx >= 0 ? 'Updated' : 'New'} microservice ${service.name}.${service.id} on client ${clientId}${connection ? '' : ' (unknown connection)'}`);
 
     if (idx >= 0) {
       this.services[idx] = {
@@ -263,7 +275,7 @@ export class Monitor {
   }
 
   public async discover(
-    timeout: number,
+    timeout?: number,
     options?: Partial<MonitorDiscoveryOptions>,
   ): Promise<void> {
 
@@ -272,16 +284,15 @@ export class Monitor {
       '',
       {
         limit: -1,
-        timeout,
+        timeout: timeout ?? this.options.discoveryTimeout,
       },
     );
 
     const services: MicroserviceInfo[] = [];
-    for await (const service of servicesIterator)
+    for await (const service of servicesIterator) {
       services.push(service.data);
-
-    for (const service of services)
-      this.saveService(service);
+      this.saveService(service.data);
+    }
 
     if (!options?.doNotClear) {
 
@@ -289,7 +300,7 @@ export class Monitor {
         .filter((oldSvc) => !services.some((newSvc) => newSvc.id === oldSvc.id));
 
       if (servicesToForget.length > 0) {
-        debug.monitor.info(`Removing ${servicesToForget} microservices that haven't responded during discovery`);
+        debug.monitor.info(`Removing microservices ${servicesToForget.map((svc) => `${svc.name}.${svc.id}`)} that have not responded during discovery`);
         for (const serviceToForger of servicesToForget)
           this.removeService(serviceToForger);
       }
@@ -298,7 +309,7 @@ export class Monitor {
 
   public startPeriodicDiscovery(
     interval: number,
-    discoveryTimeout: number,
+    discoveryTimeout?: number,
   ) {
     this.stopPeriodicDiscovery();
     this.discoveryInterval = setInterval(

@@ -108,7 +108,7 @@ export function wrapMethodSafe<T, R>(
 
         broker.send(
           msg.replyTo,
-          'undefined',
+          undefined,
           {
             headers,
           },

@@ -1,6 +1,6 @@
 # NATS Microservice Library
 
-![](https://img.shields.io/badge/Coverage-85%25-83A603.svg?style=flat&prefix=$coverage$)
+![](https://img.shields.io/badge/Coverage-91%25-83A603.svg?style=flat&prefix=$coverage$)
 
 
 
