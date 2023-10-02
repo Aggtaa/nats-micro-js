@@ -5,6 +5,7 @@ import { ZodError } from 'zod';
 
 import { Broker } from './broker.js';
 import { debug } from './debug.js';
+import { StatusError } from './statusError.js';
 import {
   Handler, MessageHandler, MicroserviceMethodConfig, Subject,
 } from './types/index.js';
@@ -56,21 +57,26 @@ export function wrapMethodSafe<T, R>(
     try {
       let input = msg.data;
       if (method.request) {
-        try {
-          input = method.request.parse(input);
-        }
-        catch (err) {
-          if (err instanceof ZodError)
-            throw new Error(`Invalid request type: ${err.issues[0].message}`);
-          else
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((method.request._def as any).typeName === 'ZodVoid')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          input = undefined as any;
+        else
+          try {
+            input = method.request.parse(input);
+          }
+          catch (err) {
+            if (err instanceof ZodError)
+              throw new Error(`Invalid request type: ${err.issues.map((i) => i.message).join(',')}`);
+
             throw err;
-        }
+          }
       }
 
       debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
 
       let output: R = await callback(input, { subject, headers: msg.headers });
-      if (!isUndefined(output) && 'replyTo' in msg && msg.replyTo) {
+      if ('replyTo' in msg && msg.replyTo) {
 
         if (method.response) {
           try {
@@ -78,7 +84,7 @@ export function wrapMethodSafe<T, R>(
           }
           catch (err) {
             if (err instanceof ZodError)
-              throw new Error(`Invalid response type: ${err.issues[0].message}`);
+              throw new Error(`Invalid response type: ${err.issues.map((i) => i.message).join(',')}`);
             else
               throw err;
           }
@@ -108,7 +114,7 @@ export function wrapMethodSafe<T, R>(
 
         broker.send(
           msg.replyTo,
-          undefined,
+          'ERROR',
           {
             headers,
           },
@@ -139,4 +145,16 @@ export function subjectToStr(subject: Subject): string {
   }
 
   throw new Error('Unknown subject format');
+}
+
+export function errorFromHeaders(headers: [string, string][]): Error | undefined {
+  const errorMessageHeader = headers.find((h) => h[0] === 'X-Error-Message');
+  const errorStatusHeader = headers.find((h) => h[0] === 'X-Error-Status');
+  if (errorMessageHeader) {
+    if (errorStatusHeader)
+      return new StatusError(errorStatusHeader[1], errorMessageHeader[1]);
+    return new Error(errorMessageHeader[1]);
+  }
+
+  return undefined;
 }

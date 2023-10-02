@@ -1,26 +1,35 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { z } from 'zod';
-
 import { storage } from './storage.js';
 import { MicroserviceMethodConfig, PartialBy } from '../types/index.js';
 import { camelCase } from '../utils.js';
 
 export type MethodDecoratorOptions<T, R> =
   { name?: string } &
-  PartialBy<Omit<MicroserviceMethodConfig<R, T>, 'handler'>, 'subject' | 'metadata'>;
+  PartialBy<Omit<MicroserviceMethodConfig<T, R>, 'handler'>, 'subject' | 'metadata'>;
 
-type Method<T, R> = ((request?: T) => Promise<R>) | ((request?: T) => R);
+type AsyncMethod<T, R> = T extends void
+  ? (() => Promise<R>)
+  : ((request: T) => Promise<R>);
+type SyncMethod<T, R> = T extends void
+  ? (() => R)
+  : ((request: T) => R);
+
+type MethodDescriptor<
+  T,
+  R,
+> = TypedPropertyDescriptor<AsyncMethod<T, R>> |
+  TypedPropertyDescriptor<SyncMethod<T, R>>;
 
 export function method<
-  T extends z.ZodType<any, any, any>,
-  R extends z.ZodType<any, any, any>,
->(options?: MethodDecoratorOptions<z.infer<T>, z.infer<R>>) {
+  T = void,
+  R = void,
+>(options?: MethodDecoratorOptions<T, R>) {
 
-  return (
+  return <D extends MethodDescriptor<T, R>>(
     target: unknown,
     key: string | symbol,
-    descriptor: TypedPropertyDescriptor<((request?: z.infer<T>) => any)>,
-  ): TypedPropertyDescriptor<Method<z.infer<T>, z.infer<R>>> | void => {
+    descriptor: D,
+  ): D => {
 
     const name = options?.name ?? camelCase(String(key));
 

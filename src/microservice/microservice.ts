@@ -190,7 +190,7 @@ export class Microservice {
     return this;
   }
 
-  profileMethod<T, R>(
+  private profileMethod<T, R>(
     name: string,
     method: MicroserviceMethodConfig<T, R>,
   ): Handler<T, R> {

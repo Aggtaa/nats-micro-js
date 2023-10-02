@@ -2,6 +2,7 @@ import moment from 'moment';
 import { isUndefined } from 'util';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { JsonSchema7Type } from 'zod-to-json-schema/src/parseDef.js';
 
 import { Broker } from '../broker.js';
 import { localConfig } from '../localConfig.js';
@@ -215,6 +216,22 @@ export class Discovery {
     };
   }
 
+  public getMethodSchema<T, R>(
+    name: string,
+    kind: keyof Pick<MicroserviceMethodConfig<T, R>, 'request' | 'response'>,
+  ): z.ZodType | undefined {
+    const method = this.config.methods[name];
+    return method ? (method[kind] ?? z.void()) : undefined;
+  }
+
+  public getMethodJsonSchema<T, R>(
+    name: string,
+    kind: keyof Pick<MicroserviceMethodConfig<T, R>, 'request' | 'response'>,
+  ): JsonSchema7Type | undefined {
+    const schema = this.getMethodSchema(name, kind);
+    return schema ? zodToJsonSchema(schema) : undefined;
+  }
+
   private handleSchema(): MicroserviceSchema {
     return {
       ...this.makeMicroserviceData(),
@@ -223,8 +240,10 @@ export class Discovery {
         .map(([n, m]) => ({
           ...this.makeMethodData(n, m),
           schema: {
-            request: zodToJsonSchema(m.request ?? z.any()),
-            response: zodToJsonSchema(m.response ?? z.void()),
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            request: this.getMethodJsonSchema(n, 'request')!,
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            response: this.getMethodJsonSchema(n, 'response')!,
           },
         })),
     };

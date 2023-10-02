@@ -3,7 +3,7 @@ import { expect } from 'chai';
 
 import '../common.js';
 import { storage } from '../../src/decorators/storage.js';
-import { method, microservice } from '../../src/index.js';
+import { method, microservice, z } from '../../src/index.js';
 
 describe('@method decorator', function () {
   it('empty', async function () {
@@ -95,7 +95,10 @@ describe('@method decorator', function () {
 
     @microservice()
     class Test {
-      @method()
+      @method({
+        request: z.void(),
+        response: z.void(),
+      })
       public method(): void { }
     }
 

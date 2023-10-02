@@ -116,7 +116,7 @@ describe('Microservice and Discovery', function () {
         broker,
         new Test(),
       ),
-    ).to.eventually.throw;
+    ).to.be.rejectedWith();
   });
 
   it('info', async function () {
@@ -385,7 +385,7 @@ describe('Microservice and Discovery', function () {
         },
       });
 
-      await broker.request('hello.method1', '');
+      await expect(broker.request('hello.method1', '')).to.be.rejectedWith('Some Error');
 
       const info: BrokerResponse<MicroserviceStats | undefined> =
         await broker.request('$SRV.STATS', '');

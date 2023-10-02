@@ -71,7 +71,10 @@ export type MicroserviceStats = BaseMicroserviceData & {
 }
 
 export type MethodSchema = BaseMethodData & {
-  schema: object,
+  schema: {
+    request: Record<string, unknown>,
+    response: Record<string, unknown>,
+  },
 }
 
 export type MicroserviceSchema = BaseMicroserviceData & {
