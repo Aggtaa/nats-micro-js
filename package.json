@@ -1,14 +1,13 @@
 {
   "name": "nats-micro",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "description": "NATS micro compatible extra-lightweight microservice library",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "scripts": {
     "compile:cjs": "cp src/__dirname.ts __dirname.bak && sed -i 's/dirname.fileURLToPath.import.meta.url../__dirname/' src/__dirname.ts && tsc --build ./tsconfig.cjs.json && ./generate_cjs_pjson.sh; mv __dirname.bak src/__dirname.ts",
     "compile:esm": "tsc --build ./tsconfig.esm.json && ./generate_esm_pjson.sh",
-    "compile:types": "tsc --build ./tsconfig.types.json",
-    "compile": "npm run compile:cjs && npm run compile:esm && npm run compile:types",
+    "compile": "npm run compile:cjs && npm run compile:esm",
     "build:clean": "rm -rf lib/*",
     "build": "npm run build:clean && npm run compile",
     "prepublishOnly": "npm run test && npm run test:badge && npm run build",

@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "./lib/cjs",
     "module": "commonjs",
-    "noEmit": false
+    "noEmit": false,
+    "declaration": true
   }
 }
