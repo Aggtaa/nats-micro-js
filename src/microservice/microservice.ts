@@ -14,7 +14,7 @@ import {
 
 export type MicroserviceOptions = {
   noStopMethod?: boolean;
-}
+};
 
 export class Microservice {
 
@@ -116,8 +116,11 @@ export class Microservice {
     const methodWrap = wrapMethodSafe(
       this.broker,
       wrapThread(this.discovery.id, this.profileMethod(name, method)),
-      name,
-      method,
+      {
+        microservice: this.config.name,
+        method: name,
+        methodConfig: method,
+      },
     );
 
     this.startedMethods[name] = methodWrap as MessageHandler<unknown>;

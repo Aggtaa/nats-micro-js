@@ -3,7 +3,10 @@ import { expect } from 'chai';
 
 import '../common.js';
 import { storage } from '../../src/decorators/storage.js';
-import { method, microservice, z } from '../../src/index.js';
+import {
+  method, microservice, z,
+  Request, Response,
+} from '../../src/index.js';
 
 describe('@method decorator', function () {
   it('empty', async function () {
@@ -22,7 +25,9 @@ describe('@method decorator', function () {
     @microservice()
     class MethodTest {
       @method()
-      public method(): void { }
+      public method(_req: Request<void>, res: Response<void>): void {
+        res.end();
+      }
     }
 
     const config = storage.getConfig(new MethodTest());
@@ -38,7 +43,9 @@ describe('@method decorator', function () {
       @microservice()
       class MethodTest {
         @method()
-        public method(): void { }
+        public method(_req: Request<void>, res: Response<void>): void {
+          res.end();
+        }
       }
 
       const config = storage.getConfig(new MethodTest());
@@ -52,7 +59,9 @@ describe('@method decorator', function () {
       @microservice()
       class MethodTest {
         @method({ name: 'testMethod' })
-        public method(): void { }
+        public method(_req: Request<void>, res: Response<void>): void {
+          res.end();
+        }
       }
 
       const config = storage.getConfig(new MethodTest());
@@ -69,7 +78,9 @@ describe('@method decorator', function () {
       @microservice()
       class MethodTest {
         @method()
-        public method(): void { }
+        public method(_req: Request<void>, res: Response<void>): void {
+          res.end();
+        }
       }
 
       const config = storage.getConfig(new MethodTest());
@@ -82,7 +93,9 @@ describe('@method decorator', function () {
       @microservice()
       class MethodTest {
         @method({ subject: 'testSubject' })
-        public method(): void { }
+        public method(_req: Request<void>, res: Response<void>): void {
+          res.end();
+        }
       }
 
       const config = storage.getConfig(new MethodTest());
@@ -98,8 +111,13 @@ describe('@method decorator', function () {
       @method({
         request: z.void(),
         response: z.void(),
+        middlewares: {
+          pre: [() => true],
+        },
       })
-      public method(): void { }
+      public method(_req: Request<void>, res: Response<void>): void {
+        res.end();
+      }
     }
 
     const target = new Test();

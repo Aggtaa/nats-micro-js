@@ -5,7 +5,8 @@ import Sinon from 'sinon';
 import {
   microservice, method,
   Microservice, MicroserviceConfig, MicroserviceInfo, MicroserviceMethodConfig,
-  MicroservicePing, MicroserviceSchema, MicroserviceStats, MicroserviceOptions, BrokerResponse,
+  MicroservicePing, MicroserviceSchema, MicroserviceStats, MicroserviceOptions,
+  Request, Response, BrokerResponse,
 } from '../src/index.js';
 import { InMemoryBroker } from '../src/inMemoryBroker.js';
 
@@ -38,7 +39,7 @@ const createServiceWithMethod = (
   methods: {
     method1: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      handler: () => 1,
+      handler: (_req, res) => { res.send(1); },
       ...data,
     },
   },
@@ -89,8 +90,8 @@ describe('Microservice and Discovery', function () {
     @microservice()
     class Test {
       @method()
-      method1(): void {
-        // nothing
+      method1(_req: Request<void>, res: Response<void>): void {
+        res.end();
       }
     }
 
@@ -106,8 +107,8 @@ describe('Microservice and Discovery', function () {
   it('from non-decorated class', async function () {
 
     class Test {
-      method1(): void {
-        // nothing
+      method1(_req: Request<void>, res: Response<void>): void {
+        res.end();
       }
     }
 

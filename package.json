@@ -1,6 +1,6 @@
 {
   "name": "nats-micro",
-  "version": "0.24.1",
+  "version": "0.25.0",
   "description": "NATS micro compatible extra-lightweight microservice library",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",

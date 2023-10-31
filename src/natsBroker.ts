@@ -6,6 +6,7 @@ import { TokenEventEmitter } from './tokenEventEmitter.js';
 import {
   RequestOptions, SendOptions, BrokerResponse,
   Subject, RequestManyOptions, MessageHandler,
+  Headers,
 } from './types/broker.js';
 import {
   errorFromHeaders, errorToString, randomId, subjectToStr,
@@ -112,7 +113,7 @@ export class NatsBroker implements Broker {
     }
   }
 
-  private encodeHeaders(headers?: Iterable<[string, string]>): nats.MsgHdrs {
+  private encodeHeaders(headers?: Headers): nats.MsgHdrs {
 
     const result = nats.headers();
     if (headers)

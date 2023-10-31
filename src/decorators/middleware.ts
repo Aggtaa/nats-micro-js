@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { storage } from './storage.js';
 import {
   Handler,
   MicroserviceMethodConfig, PartialBy,
 } from '../types/index.js';
-import { camelCase } from '../utils.js';
+import { Middlewares } from '../types/middleware.js';
 
 export type MethodDecoratorOptions<T, R> =
   { name?: string; } &
@@ -12,10 +11,10 @@ export type MethodDecoratorOptions<T, R> =
 
 type MethodDescriptor<T, R> = TypedPropertyDescriptor<Handler<T, R>>;
 
-export function method<
+export function middleware<
   T = void,
   R = void,
->(options?: MethodDecoratorOptions<T, R>) {
+>(middlewares: Middlewares<T, R>) {
 
   return <D extends MethodDescriptor<T, R>>(
     target: unknown,
@@ -26,12 +25,22 @@ export function method<
     if (!descriptor.value)
       throw new Error('Use method decorators only on class methods');
 
-    const storedMethod = storage.ensureClassMethodAdded(target, descriptor.value);
-    storedMethod.name = options?.name ?? camelCase(String(key));
-    storedMethod.config = {
-      ...storedMethod.config,
-      handler: descriptor.value,
-      ...options,
+    const oldCallback = descriptor.value;
+    descriptor.value = (req, res) => {
+      let allow: boolean = true;
+      if ('pre' in middlewares) {
+        for (const pre of middlewares.pre) {
+          allow = pre(req, res);
+          if (!allow)
+            break;
+        }
+      }
+      if (allow) {
+        oldCallback(req, res);
+        if ('post' in middlewares)
+          for (const post of [...middlewares.post].reverse())
+            post(req, res);
+      }
     };
 
     return descriptor;

@@ -25,7 +25,7 @@ export function microservice<
     const name = options?.name
       ?? camelCase(target.name.replace(/microservice/i, ''));
 
-    const ms = storage.ensureAdded(target.prototype);
+    const ms = storage.ensureClassAdded(target.prototype);
 
     ms.config = {
       ...ms.config,

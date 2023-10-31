@@ -5,7 +5,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import {
   InMemoryBroker, Microservice, method, microservice,
-  z, MicroserviceSchema, BrokerResponse,
+  z, MicroserviceSchema, BrokerResponse, Request, Response,
 } from '../../src/index.js';
 
 const testRequestSchema = z.object({
@@ -41,10 +41,10 @@ describe('type schemas', function () {
         request: testRequestSchema,
         response: testResponseSchema,
       })
-      public test(req: TestRequest): TestResponse {
-        return {
-          success: req.field1 === 'user',
-        };
+      public test(req: Request<TestRequest>, res: Response<TestResponse>): void {
+        res.send({
+          success: req.data.field1 === 'user',
+        });
       }
     }
 
@@ -65,10 +65,10 @@ describe('type schemas', function () {
         request: testRequestSchema,
         response: testResponseSchema,
       })
-      public async test(req: TestRequest): Promise<TestResponse> {
-        return {
-          success: req.field1 === 'user',
-        };
+      public test(req: Request<TestRequest>, res: Response<TestResponse>): void {
+        res.send({
+          success: req.data.field1 === 'user',
+        });
       }
     }
 
@@ -88,9 +88,8 @@ describe('type schemas', function () {
       @method({
         request: testRequestSchema,
       })
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      public test(_req: TestRequest): void {
-        // nothing
+      public test(_req: Request<TestRequest>, res: Response<void>): void {
+        res.end();
       }
     }
 
@@ -108,8 +107,8 @@ describe('type schemas', function () {
     @microservice()
     class Test {
       @method()
-      public test(): void {
-        // nothing
+      public test(_req: Request<void>, res: Response<void>): void {
+        res.end();
       }
     }
 
@@ -130,10 +129,10 @@ describe('type schemas', function () {
         request: testRequestSchema,
         response: testResponseSchema,
       })
-      public test(req: TestRequest): TestResponse {
-        return {
-          success: req.field1 === 'user',
-        };
+      public test(req: Request<TestRequest>, res: Response<TestResponse>): void {
+        res.send({
+          success: req.data.field1 === 'user',
+        });
       }
     }
 
@@ -161,10 +160,10 @@ describe('type schemas', function () {
           request: testRequestSchema,
           response: testResponseSchema,
         })
-        public test(req: TestRequest): TestResponse {
-          return {
-            success: req.field1 === 'user',
-          };
+        public test(req: Request<TestRequest>, res: Response<TestResponse>): void {
+          res.send({
+            success: req.data.field1 === 'user',
+          });
         }
       }
 
@@ -181,10 +180,10 @@ describe('type schemas', function () {
           request: testRequestSchema,
           response: testResponseSchema,
         })
-        public test(req: TestRequest): TestResponse {
-          return {
-            success: req.field1 === 'user',
-          };
+        public test(req: Request<TestRequest>, res: Response<TestResponse>): void {
+          res.send({
+            success: req.data.field1 === 'user',
+          });
         }
       }
 
@@ -204,10 +203,12 @@ describe('type schemas', function () {
           request: z.void(),
           response: testResponseSchema,
         })
-        public test(): TestResponse {
-          return {
-            hello: 'invalid',
-          } as any;
+        public test(_req: Request<void>, res: Response<TestResponse>): void {
+          res.send(
+            {
+              hello: 'invalid',
+            } as any,
+          );
         }
       }
 
@@ -224,8 +225,8 @@ describe('type schemas', function () {
           request: z.void(),
           response: testResponseSchema,
         })
-        public test(): TestResponse {
-          return undefined as any;
+        public test(_req: Request<void>, res: Response<TestResponse>): void {
+          res.send(undefined as any);
         }
       }
 
@@ -243,10 +244,12 @@ describe('type schemas', function () {
           request: z.void(),
           response: z.void(),
         })
-        public test(): void {
-          return {
-            hello: 'invalid',
-          } as any;
+        public test(_req: Request<void>, res: Response<void>): void {
+          res.send(
+            {
+              hello: 'invalid',
+            } as any,
+          );
         }
       }
 

@@ -1,13 +1,15 @@
 import { threadContext } from 'debug-threads-ns';
 import { nanoid } from 'nanoid';
-import { isUndefined } from 'util';
 import { ZodError } from 'zod';
 
 import { Broker } from './broker.js';
 import { debug } from './debug.js';
 import { StatusError } from './statusError.js';
 import {
-  Handler, MessageHandler, MicroserviceMethodConfig, Subject,
+  Handler, MessageHandler, Subject,
+  Request, Headers, EncapsulatedResponse, noResponse,
+  HandlerInfo,
+  MicroserviceHandlerInfo,
 } from './types/index.js';
 
 export function randomId(): string {
@@ -26,21 +28,60 @@ export function errorToString(error: unknown): string {
   return String(error);
 }
 
+function callHandler<T, R>(
+  handler: Handler<T, R>,
+  data: T,
+  subject: string,
+  headers: Headers,
+  handlerInfo: HandlerInfo,
+): Promise<EncapsulatedResponse<R> | symbol> {
+
+  const req: Request<T> = {
+    data,
+    subject,
+    headers,
+    handler: handlerInfo,
+  };
+
+  return new Promise((resolve) => {
+    const res: EncapsulatedResponse<R> = new class {
+      _data: R | symbol = noResponse;
+      _headers: [string, string][] = [];
+
+      send(responseData: R, responseHeaders?: Headers): void {
+        this._data = responseData;
+        if (responseHeaders)
+          this._headers.push(...Array.from(responseHeaders));
+        resolve(res);
+      }
+
+      end(): void {
+        resolve(noResponse);
+      }
+    }();
+
+    handler(req, res);
+  });
+}
+
 export function wrapMethod<T, R>(
   broker: Broker,
   callback: Handler<T, R>,
-  methodName: string,
+  handlerInfo: HandlerInfo,
 ): MessageHandler<T> {
 
   return async (msg, subject) => {
-    debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
+    debug.ms.thread.debug(`Executing ${handlerInfo.method}(${JSON.stringify(msg.data)})`);
 
-    const output: R = await callback(msg.data, { subject, headers: msg.headers });
-    if (!isUndefined(output) && 'replyTo' in msg && msg.replyTo) {
+    const output = await callHandler(callback, msg.data, subject, msg.headers ?? [], handlerInfo);
 
+    if ((typeof (output) !== 'symbol') && 'replyTo' in msg && msg.replyTo) {
       broker.send(
         msg.replyTo,
-        output,
+        output._data,
+        {
+          headers: output._headers,
+        },
       );
     }
   };
@@ -49,21 +90,20 @@ export function wrapMethod<T, R>(
 export function wrapMethodSafe<T, R>(
   broker: Broker,
   callback: Handler<T, R>,
-  methodName: string,
-  method: MicroserviceMethodConfig<T, R>,
+  handlerInfo: MicroserviceHandlerInfo<T, R>,
 ): MessageHandler<T> {
 
   return async (msg, subject) => {
     try {
       let input = msg.data;
-      if (method.request) {
+      if (handlerInfo.methodConfig.request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((method.request._def as any).typeName === 'ZodVoid')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((handlerInfo.methodConfig.request._def as any).typeName === 'ZodVoid')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           input = undefined as any;
         else
           try {
-            input = method.request.parse(input);
+            input = handlerInfo.methodConfig.request.parse(input);
           }
           catch (err) {
             if (err instanceof ZodError)
@@ -73,14 +113,20 @@ export function wrapMethodSafe<T, R>(
           }
       }
 
-      debug.ms.thread.debug(`Executing ${methodName}(${JSON.stringify(msg.data)})`);
+      debug.ms.thread.debug(`Executing ${handlerInfo.method}(${JSON.stringify(msg.data)})`);
 
-      let output: R = await callback(input, { subject, headers: msg.headers });
-      if ('replyTo' in msg && msg.replyTo) {
+      const output = await callHandler(
+        callback,
+        input,
+        subject,
+        msg.headers ?? [],
+        handlerInfo,
+      );
 
-        if (method.response) {
+      if ((typeof (output) !== 'symbol') && 'replyTo' in msg && msg.replyTo) {
+        if (handlerInfo.methodConfig.response) {
           try {
-            output = method.response.parse(output);
+            output._data = handlerInfo.methodConfig.response.parse(output._data);
           }
           catch (err) {
             if (err instanceof ZodError)
@@ -92,7 +138,10 @@ export function wrapMethodSafe<T, R>(
 
         broker.send(
           msg.replyTo,
-          output,
+          output._data,
+          {
+            headers: output._headers,
+          },
         );
       }
     }
