@@ -8,6 +8,7 @@ import { Middleware } from './middleware.js';
 export type MicroserviceMethodConfig<T, R> = {
   handler: Handler<T, R>;
   middlewares?: Middleware<T, R>[];
+  postMiddlewares?: Middleware<T, R>[];
   subject?: string;
   metadata?: Record<string, string>;
   request?: z.ZodType<T>;

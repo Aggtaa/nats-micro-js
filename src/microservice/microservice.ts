@@ -210,8 +210,13 @@ export class Microservice {
           for (const middleware of method.middlewares) {
             middleware(req, res);
           }
-        if (!res.isClosed)
+        if (!res.isClosed) {
           method.handler(req, res);
+          if (method.postMiddlewares)
+            for (const middleware of method.postMiddlewares) {
+              middleware(req, res);
+            }
+        }
 
         res.closeWaiter.catch((err) => {
           throw err;
@@ -236,5 +241,5 @@ export class Microservice {
         throw err;
       }
     };
-  }
+  };
 }

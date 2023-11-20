@@ -6,9 +6,10 @@ import sinon, { SinonSpy } from 'sinon';
 
 import { broker, spyOff, spyOn } from './common.js';
 import {
+  Handler,
   Microservice, MicroserviceConfig, MicroserviceOptions, Middleware,
+  Request, Response,
 } from '../src/index.js';
-import { StatusError } from '../src/statusError.js';
 
 const createService = (
   data?: Partial<MicroserviceConfig>,
@@ -29,26 +30,40 @@ const createService = (
   options,
 );
 
-async function createServiceWithMiddleware(
-  ...middlewares: Middleware<unknown, unknown>[]
-): Promise<SinonSpy<[unknown, unknown], void>> {
-  const handler = sinon.spy(
-    (_req, res) => {
+async function createServiceWithMiddlewareExt(
+  middlewares: Middleware<unknown, unknown>[],
+  handler: Handler<unknown, unknown> | undefined,
+  postMiddlewares: Middleware<unknown, unknown>[],
+): Promise<SinonSpy<[Request<unknown>, Response<unknown>], void>> {
+
+  if (!handler)
+    handler = (_req, res) => {
       res.send('method response');
-    },
-  );
+    };
+
+  const spy = sinon.spy(handler);
 
   await createService({
     methods: {
       method1: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        handler,
+        handler: spy,
         middlewares,
+        postMiddlewares,
       },
     },
   });
 
-  return handler;
+  return spy;
+}
+
+async function createServiceWithMiddleware(
+  ...middlewares: Middleware<unknown, unknown>[]
+): Promise<SinonSpy<[Request<unknown>, Response<unknown>], void>> {
+  return createServiceWithMiddlewareExt(
+    middlewares,
+    undefined,
+    [],
+  );
 }
 
 describe('Middleware', function () {
@@ -59,101 +74,189 @@ describe('Middleware', function () {
     spyOff.resetHistory();
   });
 
-  it('middleware that does nothing', async function () {
+  describe('Pre-middleware', function () {
 
-    const middleware = sinon.spy(() => {
-      // res.send()
+    it('middleware that does nothing', async function () {
+
+      const middleware = sinon.spy(() => {
+        // res.send()
+      });
+
+      const handler = await createServiceWithMiddleware(
+        middleware,
+      );
+
+      await expect(
+        broker.request<string, string>('hello.method1', ''),
+      ).to.eventually.have.property('data', 'method response');
+
+      expect(middleware.callCount).to.eq(1);
+      expect(handler.callCount).to.eq(1);
     });
 
-    const handler = await createServiceWithMiddleware(
-      middleware,
-    );
+    it('same multiple registered multiple times', async function () {
 
-    await expect(
-      broker.request<string, string>('hello.method1', ''),
-    ).to.eventually.have.property('data', 'method response');
+      const middleware = sinon.spy(() => {
+        // res.send()
+      });
 
-    expect(middleware.callCount).to.eq(1);
-    expect(handler.callCount).to.eq(1);
+      const handler = await createServiceWithMiddleware(
+        middleware,
+        middleware,
+        middleware,
+      );
+
+      await expect(
+        broker.request<string, string>('hello.method1', ''),
+      ).to.eventually.have.property('data', 'method response');
+
+      expect(middleware.callCount).to.eq(3);
+      expect(handler.callCount).to.eq(1);
+    });
+
+    it('middleware that responds', async function () {
+
+      const middleware = sinon.spy((_req, res) => {
+        res.send('middleware response');
+      });
+
+      const handler = await createServiceWithMiddleware(
+        middleware,
+      );
+
+      await expect(
+        broker.request<string, string>('hello.method1', ''),
+      ).to.eventually.have.property('data', 'middleware response');
+
+      expect(middleware.callCount).to.eq(1);
+      expect(handler.callCount).to.eq(0);
+    });
+
+    it('first middleware that responds', async function () {
+
+      const middleware1 = sinon.spy((_req, res) => {
+        res.send('middleware1 response');
+      });
+
+      const middleware2 = sinon.spy((_req, res) => {
+        res.send('middleware2 response');
+      });
+
+      const handler = await createServiceWithMiddleware(
+        middleware1,
+        middleware2,
+      );
+
+      await expect(
+        broker.request<string, string>('hello.method1', ''),
+      ).to.eventually.have.property('data', 'middleware1 response');
+
+      expect(middleware1.callCount).to.eq(1);
+      expect(middleware2.callCount).to.eq(1);
+      expect(handler.callCount).to.eq(0);
+    });
+
+    it('middleware that throws', async function () {
+
+      const middleware = sinon.spy(() => {
+        throw new Error('middleware error');
+      });
+
+      const handler = await createServiceWithMiddleware(
+        middleware,
+      );
+
+      await expect(
+        broker.request<string, string>('hello.method1', ''),
+      ).to.eventually.be.rejectedWith('middleware error');
+
+      expect(middleware.callCount).to.eq(1);
+      expect(handler.callCount).to.eq(0);
+    });
   });
 
-  it('same multiple registered multiple times', async function () {
+  describe('Post-middleware', function () {
 
-    const middleware = sinon.spy(() => {
-      // res.send()
+    it('middleware that does nothing', async function () {
+
+      const middleware = sinon.spy(() => {
+        // nothing
+      });
+
+      await createServiceWithMiddlewareExt(
+        [],
+        () => undefined,
+        [middleware],
+      );
+
+      await expect(
+        broker.request<string, string>('hello.method1', '', { timeout: 500 }),
+      ).to.eventually.have.property('data', undefined);
+
+      expect(middleware.callCount).to.eq(1);
     });
 
-    const handler = await createServiceWithMiddleware(
-      middleware,
-      middleware,
-      middleware,
-    );
+    it('middleware that returns', async function () {
 
-    await expect(
-      broker.request<string, string>('hello.method1', ''),
-    ).to.eventually.have.property('data', 'method response');
+      const middleware = sinon.spy((_req, res) => {
+        res.send('middleware response');
+      });
 
-    expect(middleware.callCount).to.eq(3);
-    expect(handler.callCount).to.eq(1);
-  });
+      await createServiceWithMiddlewareExt(
+        [],
+        () => undefined,
+        [middleware],
+      );
 
-  it('middleware that responds', async function () {
+      await expect(
+        broker.request<string, string>('hello.method1', ''),
+      ).to.eventually.have.property('data', 'middleware response');
 
-    const middleware = sinon.spy((_req, res) => {
-      res.send('middleware response');
+      expect(middleware.callCount).to.eq(1);
     });
 
-    const handler = await createServiceWithMiddleware(
-      middleware,
-    );
+    it('first middleware that returns', async function () {
 
-    await expect(
-      broker.request<string, string>('hello.method1', ''),
-    ).to.eventually.have.property('data', 'middleware response');
+      const middleware1 = sinon.spy((_req, res) => {
+        res.send('middleware1 response');
+      });
+      const middleware2 = sinon.spy((_req, res) => {
+        res.send('middleware2 response');
+      });
 
-    expect(middleware.callCount).to.eq(1);
-    expect(handler.callCount).to.eq(0);
-  });
+      await createServiceWithMiddlewareExt(
+        [],
+        () => undefined,
+        [middleware1, middleware2],
+      );
 
-  it('first middleware that responds', async function () {
+      await expect(
+        broker.request<string, string>('hello.method1', ''),
+      ).to.eventually.have.property('data', 'middleware1 response');
 
-    const middleware1 = sinon.spy((_req, res) => {
-      res.send('middleware1 response');
+      expect(middleware1.callCount).to.eq(1);
+      expect(middleware2.callCount).to.eq(1);
     });
 
-    const middleware2 = sinon.spy((_req, res) => {
-      res.send('middleware2 response');
+    it('not called after handler errors out', async function () {
+
+      const middleware = sinon.spy((_req, res) => {
+        res.send('middleware response');
+      });
+
+      await createServiceWithMiddlewareExt(
+        [],
+        () => {
+          throw new Error('handler error');
+        },
+        [middleware],
+      );
+
+      await expect(
+        broker.request<string, string>('hello.method1', ''),
+      ).to.be.eventually.rejectedWith('handler error');
+
+      expect(middleware.callCount).to.eq(0);
     });
-
-    const handler = await createServiceWithMiddleware(
-      middleware1,
-      middleware2,
-    );
-
-    await expect(
-      broker.request<string, string>('hello.method1', ''),
-    ).to.eventually.have.property('data', 'middleware1 response');
-
-    expect(middleware1.callCount).to.eq(1);
-    expect(middleware2.callCount).to.eq(1);
-    expect(handler.callCount).to.eq(0);
-  });
-
-  it('middleware that throws', async function () {
-
-    const middleware = sinon.spy(() => {
-      throw new Error('middleware error');
-    });
-
-    const handler = await createServiceWithMiddleware(
-      middleware,
-    );
-
-    await expect(
-      broker.request<string, string>('hello.method1', ''),
-    ).to.eventually.be.rejectedWith('middleware error');
-
-    expect(middleware.callCount).to.eq(1);
-    expect(handler.callCount).to.eq(0);
   });
 });

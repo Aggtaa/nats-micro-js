@@ -2,10 +2,10 @@
 import { storage } from './storage.js';
 import { MethodDescriptor, Middleware } from '../types/index.js';
 
-export function middleware<
+function middlewareExt<
   T = void,
   R = void,
->(...middlewares: Middleware<T, R>[]) {
+>(middlewares: Middleware<T, R>[], postMiddlewares: Middleware<T, R>[]) {
 
   return <D extends MethodDescriptor<T, R>>(
     target: unknown,
@@ -20,8 +20,23 @@ export function middleware<
     storedMethod.config = {
       ...storedMethod.config,
       middlewares: [...(storedMethod.config.middlewares ?? []), ...middlewares],
+      postMiddlewares: [...(storedMethod.config.postMiddlewares ?? []), ...postMiddlewares],
     };
 
     return descriptor;
   };
 }
+
+const middleware = <
+  T = void,
+  R = void,
+>(...middlewares: Middleware<T, R>[]) => middlewareExt(middlewares, []);
+
+middleware.post = <
+  T = void,
+  R = void,
+>(...middlewares: Middleware<T, R>[]) => middlewareExt([], middlewares);
+
+export {
+  middleware,
+};
