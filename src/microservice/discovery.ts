@@ -13,8 +13,8 @@ import {
   Request, Response,
 } from '../types/index.js';
 import {
-  randomId, wrapMethod, wrapThread,
-} from '../utils.js';
+  randomId, wrapMethod, attachThreadContext,
+} from '../utils/index.js';
 
 const emptyMethodProfile: MethodProfile = {
   num_requests: 0,
@@ -50,7 +50,7 @@ export class Discovery {
 
     const wrap = <T, R>(handler: Handler<T, R>, name: string) => wrapMethod(
       this.broker,
-      wrapThread(this.id, handler.bind(this)),
+      attachThreadContext(this.id, handler.bind(this)),
       { microservice: this.originalConfig.name, method: name },
     );
 

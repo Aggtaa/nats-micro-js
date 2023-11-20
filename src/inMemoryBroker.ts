@@ -6,7 +6,7 @@ import {
   MessageHandler, Subject, BrokerResponse,
   MessageMaybeReplyTo, RequestManyOptions, RequestOptions, SendOptions,
 } from './types/broker.js';
-import { errorFromHeaders, subjectToStr } from './utils.js';
+import { errorFromHeaders, subjectToStr } from './utils/index.js';
 
 export class InMemoryBroker implements Broker {
 

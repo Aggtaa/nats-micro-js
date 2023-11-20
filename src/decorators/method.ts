@@ -1,16 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { storage } from './storage.js';
 import {
-  Handler,
-  MicroserviceMethodConfig, PartialBy,
+  MethodDecoratorOptions,
+  MethodDescriptor,
 } from '../types/index.js';
-import { camelCase } from '../utils.js';
-
-export type MethodDecoratorOptions<T, R> =
-  { name?: string; } &
-  PartialBy<Omit<MicroserviceMethodConfig<T, R>, 'handler'>, 'subject' | 'metadata'>;
-
-type MethodDescriptor<T, R> = TypedPropertyDescriptor<Handler<T, R>>;
+import { camelCase } from '../utils/index.js';
 
 export function method<
   T = void,

@@ -4,9 +4,10 @@ import { expect } from 'chai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import {
-  InMemoryBroker, Microservice, method, microservice,
+  Microservice, method, microservice,
   z, MicroserviceSchema, BrokerResponse, Request, Response,
 } from '../../src/index.js';
+import { broker } from '../common.js';
 
 const testRequestSchema = z.object({
   field1: z.string().optional(),
@@ -24,8 +25,6 @@ type TestResponse =
 const testResponseJsonSchema = zodToJsonSchema(testResponseSchema);
 
 const voidJsonSchema = zodToJsonSchema(z.void());
-
-const broker = new InMemoryBroker();
 
 describe('type schemas', function () {
 
@@ -89,7 +88,7 @@ describe('type schemas', function () {
         request: testRequestSchema,
       })
       public test(_req: Request<TestRequest>, res: Response<void>): void {
-        res.end();
+        res.sendNoResponse();
       }
     }
 
@@ -108,7 +107,7 @@ describe('type schemas', function () {
     class Test {
       @method()
       public test(_req: Request<void>, res: Response<void>): void {
-        res.end();
+        res.sendNoResponse();
       }
     }
 

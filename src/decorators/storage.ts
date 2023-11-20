@@ -11,6 +11,7 @@ export type StoredMicroserviceMethod<T, R> = {
 export type StoredMicroservice = {
   target: unknown; // class constructor
   config: Omit<MicroserviceConfig, 'methods'>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   methods: StoredMicroserviceMethod<any, any>[];
 };
 

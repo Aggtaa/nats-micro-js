@@ -1,10 +1,8 @@
 import { expect } from 'chai';
 import Sinon from 'sinon';
 
-import { InMemoryBroker } from '../src/inMemoryBroker.js';
-import { wrapMethod } from '../src/utils.js';
-
-const broker = new InMemoryBroker();
+import { broker } from './common.js';
+import { wrapMethod } from '../src/utils/index.js';
 
 describe('InMemoryBroker', function () {
 

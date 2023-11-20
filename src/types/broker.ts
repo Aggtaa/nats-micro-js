@@ -17,17 +17,14 @@ export type Request<T> = {
 export const noResponse = Symbol('no reponse');
 
 export type Response<R> = {
-  send: (data: R, headers?: Headers) => void;
-  end: () => void;
-};
-
-export type EncapsulatedResponse<R> = Response<R> & {
-  _data: R | symbol,
-  _headers: Headers,
+  get closeWaiter(): Promise<void>;
+  get isClosed(): boolean;
+  setHeaders: (headers: Headers) => void;
+  send: (data: R) => void;
+  sendNoResponse: () => void;
 };
 
 export type Handler<T, R, RR = void> = (req: Request<T>, res: Response<R>) => RR;
-
 export type MicroserviceSubject = {
   microservice: string;
   instance?: string; // for calls to "local" methods

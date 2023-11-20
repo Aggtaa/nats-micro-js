@@ -10,7 +10,7 @@ import {
 } from './types/broker.js';
 import {
   errorFromHeaders, errorToString, randomId, subjectToStr,
-} from './utils.js';
+} from './utils/index.js';
 
 export type { ConnectionOptions } from 'nats';
 

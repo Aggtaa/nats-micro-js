@@ -2,17 +2,13 @@
 import { expect } from 'chai';
 import Sinon from 'sinon';
 
+import { broker, spyOff, spyOn } from './common.js';
 import {
   microservice, method,
   Microservice, MicroserviceConfig, MicroserviceInfo, MicroserviceMethodConfig,
   MicroservicePing, MicroserviceSchema, MicroserviceStats, MicroserviceOptions,
   Request, Response, BrokerResponse,
 } from '../src/index.js';
-import { InMemoryBroker } from '../src/inMemoryBroker.js';
-
-const broker = new InMemoryBroker();
-const spyOn = Sinon.spy(broker, 'on');
-const spyOff = Sinon.spy(broker, 'off');
 
 const createService = (
   data?: Partial<MicroserviceConfig>,
@@ -39,7 +35,9 @@ const createServiceWithMethod = (
   methods: {
     method1: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      handler: (_req, res) => { res.send(1); },
+      handler: (_req, res) => {
+        res.send(1);
+      },
       ...data,
     },
   },
@@ -91,7 +89,7 @@ describe('Microservice and Discovery', function () {
     class Test {
       @method()
       method1(_req: Request<void>, res: Response<void>): void {
-        res.end();
+        res.sendNoResponse();
       }
     }
 
@@ -108,7 +106,7 @@ describe('Microservice and Discovery', function () {
 
     class Test {
       method1(_req: Request<void>, res: Response<void>): void {
-        res.end();
+        res.sendNoResponse();
       }
     }
 

@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
 import { Handler, HandlerInfo } from './broker.js';
-import { Middlewares } from './middleware.js';
+import { Middleware } from './middleware.js';
 
 // https://pkg.go.dev/github.com/nats-io/nats.go/micro
 
 export type MicroserviceMethodConfig<T, R> = {
   handler: Handler<T, R>;
-  middlewares?: Middlewares<T, R>;
+  middlewares?: Middleware<T, R>[];
   subject?: string;
   metadata?: Record<string, string>;
   request?: z.ZodType<T>;
@@ -24,7 +24,7 @@ export type MicroserviceConfig = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   methods: Record<string, MicroserviceMethodConfig<any, any>>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  middlewares?: Middlewares<any, any>;
+  // middlewares?: Middleware<any, any>[];
 };
 
 export type MicroserviceHandlerInfo<T, R> = HandlerInfo & {

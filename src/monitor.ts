@@ -6,7 +6,7 @@ import {
   Message, MicroserviceInfo, MicroserviceRegistration, MicroserviceRegistrationSubject,
   Request, Response,
 } from './types/index.js';
-import { wrapMethod, wrapThread } from './utils.js';
+import { wrapMethod, attachThreadContext } from './utils/index.js';
 
 export type MonitorDiscoveryOptions = {
   doNotClear: boolean;
@@ -98,7 +98,7 @@ export class Monitor {
 
     const handleServiceRegistration = wrapMethod(
       this.broker,
-      wrapThread('monitor', this.handleServiceRegistration.bind(this)),
+      attachThreadContext('monitor', this.handleServiceRegistration.bind(this)),
       {
         method: 'handleServiceStatus',
       },
@@ -187,7 +187,7 @@ export class Monitor {
     else
       this.saveService(req.data.info);
 
-    res.end();
+    res.sendNoResponse();
   }
 
   private async handleAccountConnect(msg: Message<UserConnectEvent>): Promise<void> {

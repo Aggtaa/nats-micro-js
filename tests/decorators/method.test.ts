@@ -26,7 +26,7 @@ describe('@method decorator', function () {
     class MethodTest {
       @method()
       public method(_req: Request<void>, res: Response<void>): void {
-        res.end();
+        res.sendNoResponse();
       }
     }
 
@@ -44,7 +44,7 @@ describe('@method decorator', function () {
       class MethodTest {
         @method()
         public method(_req: Request<void>, res: Response<void>): void {
-          res.end();
+          res.sendNoResponse();
         }
       }
 
@@ -60,7 +60,7 @@ describe('@method decorator', function () {
       class MethodTest {
         @method({ name: 'testMethod' })
         public method(_req: Request<void>, res: Response<void>): void {
-          res.end();
+          res.sendNoResponse();
         }
       }
 
@@ -79,7 +79,7 @@ describe('@method decorator', function () {
       class MethodTest {
         @method()
         public method(_req: Request<void>, res: Response<void>): void {
-          res.end();
+          res.sendNoResponse();
         }
       }
 
@@ -94,7 +94,7 @@ describe('@method decorator', function () {
       class MethodTest {
         @method({ subject: 'testSubject' })
         public method(_req: Request<void>, res: Response<void>): void {
-          res.end();
+          res.sendNoResponse();
         }
       }
 
@@ -111,12 +111,9 @@ describe('@method decorator', function () {
       @method({
         request: z.void(),
         response: z.void(),
-        middlewares: {
-          pre: [() => true],
-        },
       })
       public method(_req: Request<void>, res: Response<void>): void {
-        res.end();
+        res.sendNoResponse();
       }
     }
 

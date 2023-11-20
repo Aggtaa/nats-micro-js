@@ -1,14 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { storage } from './storage.js';
-import { MicroserviceConfig } from '../types/index.js';
-import { camelCase } from '../utils.js';
-
-export type MicroserviceDecoratorOptions =
-  Partial<
-    Pick<MicroserviceConfig,
-      'name' | 'description' | 'version' | 'metadata'>
-  >;
+import { MicroserviceDecoratorOptions } from '../types/index.js';
+import { camelCase } from '../utils/index.js';
 
 export function microservice<
   T,
