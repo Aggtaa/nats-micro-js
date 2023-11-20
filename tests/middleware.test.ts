@@ -259,4 +259,40 @@ describe('Middleware', function () {
       expect(middleware.callCount).to.eq(0);
     });
   });
+
+  it('Pass-thru middleware', async function () {
+
+    function middlewarePairGen() : [SinonSpy[], SinonSpy[]] {
+      let passThruVar = 1;
+
+      return [
+        [
+          sinon.spy(() => {
+            expect(passThruVar).to.eq(1);
+            passThruVar = 2;
+          }),
+        ],
+        [
+          sinon.spy(() => {
+            expect(passThruVar).to.eq(2);
+          }),
+        ],
+      ];
+    }
+
+    const pair = middlewarePairGen();
+
+    await createServiceWithMiddlewareExt(
+      pair[0],
+      undefined,
+      pair[1],
+    );
+
+    await expect(
+      broker.request<string, string>('hello.method1', ''),
+    ).to.eventually.have.property('data', 'method response');
+
+    expect(pair[0][0].callCount).to.eq(1);
+    expect(pair[1][0].callCount).to.eq(1);
+  });
 });

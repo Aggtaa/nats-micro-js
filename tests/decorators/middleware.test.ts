@@ -37,7 +37,7 @@ describe('@middleware decorator', function () {
 
       @microservice()
       class Test {
-        @middleware(() => undefined)
+        @middleware.pre(() => undefined)
         @method()
         public method(_req: Request<void>, res: Response<void>): void {
           res.sendNoResponse();
@@ -55,9 +55,9 @@ describe('@middleware decorator', function () {
 
       @microservice()
       class MethodTest {
-        @middleware(() => undefined)
-        @middleware(() => undefined)
-        @middleware(() => undefined)
+        @middleware.pre(() => undefined)
+        @middleware.pre(() => undefined)
+        @middleware.pre(() => undefined)
         @method()
         public method(_req: Request<void>, res: Response<void>): void {
           res.sendNoResponse();

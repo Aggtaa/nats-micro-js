@@ -2,10 +2,10 @@
 import { storage } from './storage.js';
 import { MethodDescriptor, Middleware } from '../types/index.js';
 
-function middlewareExt<
+function middleware<
   T = void,
   R = void,
->(middlewares: Middleware<T, R>[], postMiddlewares: Middleware<T, R>[]) {
+>(middlewares: Middleware<T, R>[], postMiddlewares: Middleware<T, R>[] = []) {
 
   return <D extends MethodDescriptor<T, R>>(
     target: unknown,
@@ -27,15 +27,15 @@ function middlewareExt<
   };
 }
 
-const middleware = <
+middleware.pre = <
   T = void,
   R = void,
->(...middlewares: Middleware<T, R>[]) => middlewareExt(middlewares, []);
+>(...middlewares: Middleware<T, R>[]) => middleware(middlewares, []);
 
 middleware.post = <
   T = void,
   R = void,
->(...middlewares: Middleware<T, R>[]) => middlewareExt([], middlewares);
+>(...middlewares: Middleware<T, R>[]) => middleware([], middlewares);
 
 export {
   middleware,
