@@ -1,10 +1,8 @@
 import { expect } from 'chai';
 import Sinon from 'sinon';
 
-import { InMemoryBroker } from '../src/inMemoryBroker.js';
-import { wrapMethod } from '../src/utils.js';
-
-const broker = new InMemoryBroker();
+import { broker } from './common.js';
+import { wrapMethod } from '../src/utils/index.js';
 
 describe('InMemoryBroker', function () {
 
@@ -30,7 +28,13 @@ describe('InMemoryBroker', function () {
 
   it('request', async function () {
 
-    const handler = wrapMethod(broker, () => 'papa', 'papa');
+    const handler = wrapMethod(
+      broker,
+      (_req, res): void => {
+        res.send('papa');
+      },
+      { method: 'papa' },
+    );
 
     broker.on('hello', handler);
 
@@ -48,8 +52,20 @@ describe('InMemoryBroker', function () {
 
   it('request many', async function () {
 
-    const handler1 = wrapMethod(broker, () => 'papa 1', 'papa 1');
-    const handler2 = wrapMethod(broker, () => 'papa 2', 'papa 2');
+    const handler1 = wrapMethod(
+      broker,
+      (_req, res): void => {
+        res.send('papa 1');
+      },
+      { method: 'papa 1' },
+    );
+    const handler2 = wrapMethod(
+      broker,
+      (_req, res): void => {
+        res.send('papa 2');
+      },
+      { method: 'papa 2' },
+    );
 
     broker.on('hello', handler1);
     broker.on('hello', handler2);
@@ -70,8 +86,20 @@ describe('InMemoryBroker', function () {
 
   it('request many with limit', async function () {
 
-    const handler1 = wrapMethod(broker, () => 'papa 1', 'papa 1');
-    const handler2 = wrapMethod(broker, () => 'papa 2', 'papa 2');
+    const handler1 = wrapMethod(
+      broker,
+      (_req, res): void => {
+        res.send('papa 1');
+      },
+      { method: 'papa 1' },
+    );
+    const handler2 = wrapMethod(
+      broker,
+      (_req, res): void => {
+        res.send('papa 2');
+      },
+      { method: 'papa 2' },
+    );
 
     broker.on('hello', handler1);
     broker.on('hello', handler2);

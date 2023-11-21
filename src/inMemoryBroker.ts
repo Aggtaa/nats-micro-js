@@ -6,7 +6,7 @@ import {
   MessageHandler, Subject, BrokerResponse,
   MessageMaybeReplyTo, RequestManyOptions, RequestOptions, SendOptions,
 } from './types/broker.js';
-import { subjectToStr } from './utils.js';
+import { errorFromHeaders, subjectToStr } from './utils/index.js';
 
 export class InMemoryBroker implements Broker {
 
@@ -67,16 +67,17 @@ export class InMemoryBroker implements Broker {
     data: T,
     options?: RequestManyOptions,
   ): AsyncIterableIterator<BrokerResponse<R>> {
-    debug.broker.debug(`Requesting ${JSON.stringify(data)} from ${JSON.stringify(subject)}`);
-
-    const bucket = eventBucket<R>();
-
     const inbox = this.createInbox();
+
+    debug.broker.debug(`Requesting ${JSON.stringify(data)} from ${JSON.stringify(subject)}, reply to ${JSON.stringify(inbox)}`);
+
+    const bucket = eventBucket<MessageMaybeReplyTo<R>>();
+
     let responseCount = 0;
     const responseLimit = options?.limit ?? -1;
 
     const responseHandler = (msg: MessageMaybeReplyTo<R>) => {
-      bucket.push(msg.data);
+      bucket.push(msg);
       if (responseLimit > 0 && (++responseCount >= responseLimit))
         // eslint-disable-next-line no-use-before-define
         close();
@@ -98,12 +99,23 @@ export class InMemoryBroker implements Broker {
     for await (const item of bucket) {
       if ('done' in item)
         break;
-      else
-        yield Promise.resolve({
-          data: item.value,
-          headers: [],
-          subject: inbox,
-        });
+      else {
+        const error = item.value.headers
+          ? errorFromHeaders(Array.from(item.value.headers))
+          : undefined;
+        if (error)
+          yield Promise.resolve({
+            subject: inbox,
+            headers: item.value.headers,
+            error,
+          } as BrokerResponse<R>);
+        else
+          yield Promise.resolve({
+            subject: inbox,
+            data: item.value.data,
+            headers: item.value.headers,
+          } as BrokerResponse<R>);
+      }
     }
   }
 
@@ -119,8 +131,11 @@ export class InMemoryBroker implements Broker {
     );
 
     const result = await results.next();
-    if (!result.done)
+    if (!result.done) {
+      if (result.value.error)
+        throw result.value.error;
       return result.value;
+    }
 
     return {
       data: undefined,

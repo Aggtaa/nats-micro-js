@@ -2,16 +2,13 @@
 import { expect } from 'chai';
 import Sinon from 'sinon';
 
+import { broker, spyOff, spyOn } from './common.js';
 import {
   microservice, method,
   Microservice, MicroserviceConfig, MicroserviceInfo, MicroserviceMethodConfig,
-  MicroservicePing, MicroserviceSchema, MicroserviceStats, MicroserviceOptions, BrokerResponse,
+  MicroservicePing, MicroserviceSchema, MicroserviceStats, MicroserviceOptions,
+  Request, Response, BrokerResponse,
 } from '../src/index.js';
-import { InMemoryBroker } from '../src/inMemoryBroker.js';
-
-const broker = new InMemoryBroker();
-const spyOn = Sinon.spy(broker, 'on');
-const spyOff = Sinon.spy(broker, 'off');
 
 const createService = (
   data?: Partial<MicroserviceConfig>,
@@ -38,7 +35,9 @@ const createServiceWithMethod = (
   methods: {
     method1: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      handler: () => 1,
+      handler: (_req, res) => {
+        res.send(1);
+      },
       ...data,
     },
   },
@@ -89,8 +88,8 @@ describe('Microservice and Discovery', function () {
     @microservice()
     class Test {
       @method()
-      method1(): void {
-        // nothing
+      method1(_req: Request<void>, res: Response<void>): void {
+        res.sendNoResponse();
       }
     }
 
@@ -106,8 +105,8 @@ describe('Microservice and Discovery', function () {
   it('from non-decorated class', async function () {
 
     class Test {
-      method1(): void {
-        // nothing
+      method1(_req: Request<void>, res: Response<void>): void {
+        res.sendNoResponse();
       }
     }
 
@@ -116,7 +115,7 @@ describe('Microservice and Discovery', function () {
         broker,
         new Test(),
       ),
-    ).to.eventually.throw;
+    ).to.be.rejectedWith();
   });
 
   it('info', async function () {
@@ -385,7 +384,7 @@ describe('Microservice and Discovery', function () {
         },
       });
 
-      await broker.request('hello.method1', '');
+      await expect(broker.request('hello.method1', '')).to.be.rejectedWith('Some Error');
 
       const info: BrokerResponse<MicroserviceStats | undefined> =
         await broker.request('$SRV.STATS', '');

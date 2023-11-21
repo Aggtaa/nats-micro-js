@@ -1,6 +1,6 @@
 # NATS Microservice Library
 
-![](https://img.shields.io/badge/Coverage-91%25-83A603.svg?style=flat&prefix=$coverage$)
+![](https://img.shields.io/badge/Coverage-92%25-83A603.svg?style=flat&prefix=$coverage$)
 
 
 
@@ -8,7 +8,7 @@ A convenient microservice library based on NATS and compatible with nats-go micr
 
 ## Description
 
-This is a **typescript-first** library that provides a convinient (in 10 lines of code or less!) way to write **microservises** with out of the box **auto discovery**, **observability** and **load balancing**.
+This is a **typescript-first** library that provides a convinient (in 10 lines of code or less!) way to write **microservices** with out of the box **auto discovery**, **observability** and **load balancing**.
 
 Full interoperability with to-be-released nastcli v0.0.36 that adds `nats micro info`, `nats micro stats` and `nats micro ping` commands
 
@@ -17,8 +17,7 @@ It also supports service schema discovery which is not (yet?) supported by `nats
 ## Limitations / TODO
 
 1. Automatic type schemas and validation is incomplete
-2. No way to get response headers when using request method. Use createInbox => on => send => off sequence instead
-3. `InMemoryBroker` mock class does not use queue groups and thus does not load balance
+2. `InMemoryBroker` mock class does not use queue groups and thus does not load balance
 
 ## Installation
 

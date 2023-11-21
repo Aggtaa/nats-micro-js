@@ -9,12 +9,12 @@ import {
   Handler, MessageHandler, MicroserviceConfig, MicroserviceMethodConfig,
 } from '../types/index.js';
 import {
-  errorToString, wrapMethodSafe, wrapThread,
-} from '../utils.js';
+  errorToString, attachThreadContext, wrapMethodSafe,
+} from '../utils/index.js';
 
 export type MicroserviceOptions = {
   noStopMethod?: boolean;
-}
+};
 
 export class Microservice {
 
@@ -115,9 +115,18 @@ export class Microservice {
   ): Promise<void> {
     const methodWrap = wrapMethodSafe(
       this.broker,
-      wrapThread(this.discovery.id, this.profileMethod(name, method)),
-      name,
-      method,
+      attachThreadContext(
+        this.discovery.id,
+        this.getProfiledMethodHandler(
+          name,
+          method,
+        ),
+      ),
+      {
+        microservice: this.config.name,
+        method: name,
+        methodConfig: method,
+      },
     );
 
     this.startedMethods[name] = methodWrap as MessageHandler<unknown>;
@@ -190,21 +199,37 @@ export class Microservice {
     return this;
   }
 
-  profileMethod<T, R>(
+  private getProfiledMethodHandler<T, R>(
     name: string,
     method: MicroserviceMethodConfig<T, R>,
   ): Handler<T, R> {
-    return (args, payload) => {
+    return (req, res): void => {
       const start = process.hrtime.bigint();
       try {
-        const result = method.handler(args, payload);
-        const elapsed = process.hrtime.bigint() - start;
-        this.discovery.profileMethod(
-          name,
-          undefined,
-          Number(elapsed),
-        );
-        return result;
+        if (method.middlewares)
+          for (const middleware of method.middlewares) {
+            middleware(req, res);
+          }
+        if (!res.isClosed) {
+          method.handler(req, res);
+          if (method.postMiddlewares)
+            for (const middleware of method.postMiddlewares) {
+              middleware(req, res);
+            }
+        }
+
+        res.closeWaiter.catch((err) => {
+          throw err;
+        });
+
+        res.closeWaiter.then(() => {
+          const elapsed = process.hrtime.bigint() - start;
+          this.discovery.profileMethod(
+            name,
+            undefined,
+            Number(elapsed),
+          );
+        });
       }
       catch (err) {
         const elapsed = process.hrtime.bigint() - start;
@@ -216,5 +241,5 @@ export class Microservice {
         throw err;
       }
     };
-  }
+  };
 }

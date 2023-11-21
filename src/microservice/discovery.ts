@@ -2,17 +2,19 @@ import moment from 'moment';
 import { isUndefined } from 'util';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { JsonSchema7Type } from 'zod-to-json-schema/src/parseDef.js';
 
 import { Broker } from '../broker.js';
 import { localConfig } from '../localConfig.js';
 import {
-  BaseMethodData, BaseMicroserviceData, MessageHandler, MethodProfile,
+  BaseMethodData, BaseMicroserviceData, Handler, MessageHandler, MethodProfile,
   MicroserviceConfig, MicroserviceInfo, MicroserviceMethodConfig, MicroservicePing,
   MicroserviceRegistration, MicroserviceRegistrationSubject, MicroserviceSchema, MicroserviceStats,
+  Request, Response,
 } from '../types/index.js';
 import {
-  randomId, wrapMethod, wrapThread,
-} from '../utils.js';
+  randomId, wrapMethod, attachThreadContext,
+} from '../utils/index.js';
 
 const emptyMethodProfile: MethodProfile = {
   num_requests: 0,
@@ -46,10 +48,16 @@ export class Discovery {
     this.startedAt = new Date();
     this.id = randomId();
 
-    this.handleSchemaWrap = wrapMethod(this.broker, wrapThread(this.id, this.handleSchema.bind(this)), 'handleSchema');
-    this.handleInfoWrap = wrapMethod(this.broker, wrapThread(this.id, this.handleInfo.bind(this)), 'handleInfo');
-    this.handlePingWrap = wrapMethod(this.broker, wrapThread(this.id, this.handlePing.bind(this)), 'handlePing');
-    this.handleStatsWrap = wrapMethod(this.broker, wrapThread(this.id, this.handleStats.bind(this)), 'handleStats');
+    const wrap = <T, R>(handler: Handler<T, R>, name: string) => wrapMethod(
+      this.broker,
+      attachThreadContext(this.id, handler.bind(this)),
+      { microservice: this.originalConfig.name, method: name },
+    );
+
+    this.handleSchemaWrap = wrap(this.handleSchema, 'handleSchema');
+    this.handleInfoWrap = wrap(this.handleInfo, 'handleInfo');
+    this.handlePingWrap = wrap(this.handlePing, 'handlePing');
+    this.handleStatsWrap = wrap(this.handleStats, 'handleStats');
   }
 
   public get originalConfig(): MicroserviceConfig {
@@ -122,7 +130,7 @@ export class Discovery {
     await this.broker.send(
       MicroserviceRegistrationSubject,
       {
-        info: this.handleInfo(),
+        info: this.makeInfo(),
         state,
       } as MicroserviceRegistration,
     );
@@ -215,27 +223,45 @@ export class Discovery {
     };
   }
 
-  private handleSchema(): MicroserviceSchema {
-    return {
+  public getMethodSchema<T, R>(
+    name: string,
+    kind: keyof Pick<MicroserviceMethodConfig<T, R>, 'request' | 'response'>,
+  ): z.ZodType | undefined {
+    const method = this.config.methods[name];
+    return method ? (method[kind] ?? z.void()) : undefined;
+  }
+
+  public getMethodJsonSchema<T, R>(
+    name: string,
+    kind: keyof Pick<MicroserviceMethodConfig<T, R>, 'request' | 'response'>,
+  ): JsonSchema7Type | undefined {
+    const schema = this.getMethodSchema(name, kind);
+    return schema ? zodToJsonSchema(schema) : undefined;
+  }
+
+  private handleSchema(_req: Request<void>, res: Response<MicroserviceSchema>): void {
+    res.send({
       ...this.makeMicroserviceData(),
       type: 'io.nats.micro.v1.schema_response',
       endpoints: Object.entries(this.config.methods)
         .map(([n, m]) => ({
           ...this.makeMethodData(n, m),
           schema: {
-            request: zodToJsonSchema(m.request ?? z.any()),
-            response: zodToJsonSchema(m.response ?? z.void()),
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            request: this.getMethodJsonSchema(n, 'request')!,
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            response: this.getMethodJsonSchema(n, 'response')!,
           },
         })),
-    };
+    });
   }
 
-  private handleInfo(): MicroserviceInfo {
-    return this.makeInfo();
+  private handleInfo(_req: Request<void>, res: Response<MicroserviceInfo>): void {
+    res.send(this.makeInfo());
   }
 
-  private handleStats(): MicroserviceStats {
-    return {
+  private handleStats(_req: Request<void>, res: Response<MicroserviceStats>): void {
+    res.send({
       ...this.makeMicroserviceData(),
       type: 'io.nats.micro.v1.stats_response',
       started: moment(this.startedAt).toISOString(),
@@ -244,13 +270,13 @@ export class Discovery {
           ...this.makeMethodData(n, m),
           ...(this.methodStats[n] ?? emptyMethodProfile),
         })),
-    };
+    });
   }
 
-  private async handlePing(): Promise<MicroservicePing> {
-    return {
+  private handlePing(_req: Request<void>, res: Response<MicroservicePing>): void {
+    res.send({
       ...this.makeMicroserviceData(),
       type: 'io.nats.micro.v1.ping_response',
-    };
+    });
   }
 }

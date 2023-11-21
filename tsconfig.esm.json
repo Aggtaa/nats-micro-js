@@ -3,6 +3,7 @@
   "compilerOptions": { 
     "outDir": "./lib/esm", 
     "module": "esnext",
-    "noEmit": false
+    "noEmit": false,
+    "declaration": true
    } 
 }

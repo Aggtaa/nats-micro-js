@@ -1,35 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { z } from 'zod';
-
 import { storage } from './storage.js';
-import { MicroserviceMethodConfig, PartialBy } from '../types/index.js';
-import { camelCase } from '../utils.js';
-
-export type MethodDecoratorOptions<T, R> =
-  { name?: string } &
-  PartialBy<Omit<MicroserviceMethodConfig<R, T>, 'handler'>, 'subject' | 'metadata'>;
-
-type Method<T, R> = ((request?: T) => Promise<R>) | ((request?: T) => R);
+import {
+  MethodDecoratorOptions,
+  MethodDescriptor,
+} from '../types/index.js';
+import { camelCase } from '../utils/index.js';
 
 export function method<
-  T extends z.ZodType<any, any, any>,
-  R extends z.ZodType<any, any, any>,
->(options?: MethodDecoratorOptions<z.infer<T>, z.infer<R>>) {
+  T = void,
+  R = void,
+>(options?: MethodDecoratorOptions<T, R>) {
 
-  return (
+  return <D extends MethodDescriptor<T, R>>(
     target: unknown,
     key: string | symbol,
-    descriptor: TypedPropertyDescriptor<((request?: z.infer<T>) => any)>,
-  ): TypedPropertyDescriptor<Method<z.infer<T>, z.infer<R>>> | void => {
-
-    const name = options?.name ?? camelCase(String(key));
+    descriptor: D,
+  ): D => {
 
     if (!descriptor.value)
       throw new Error('Use method decorators only on class methods');
 
-    const ms = storage.ensureAdded(target);
-
-    ms.config.methods[name] = {
+    const storedMethod = storage.ensureClassMethodAdded(target, descriptor.value);
+    storedMethod.name = options?.name ?? camelCase(String(key));
+    storedMethod.config = {
+      ...storedMethod.config,
       handler: descriptor.value,
       ...options,
     };

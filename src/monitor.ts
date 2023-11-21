@@ -4,34 +4,35 @@ import { Broker } from './broker.js';
 import { debug } from './debug.js';
 import {
   Message, MicroserviceInfo, MicroserviceRegistration, MicroserviceRegistrationSubject,
+  Request, Response,
 } from './types/index.js';
-import { wrapMethod, wrapThread } from './utils.js';
+import { wrapMethod, attachThreadContext } from './utils/index.js';
 
 export type MonitorDiscoveryOptions = {
   doNotClear: boolean;
-}
+};
 
 type ServerPingOptions = {
   // no options yet
-}
+};
 
 type ServerPingResponse = {
   server: {
     name: string,
-    host: string
+    host: string;
     id: string,
     ver: string,
     // jetstream: boolean,
     // flags: number,
     // seq: number,
     // time: string,
-  }
-}
+  };
+};
 
 type ServerConnzOptions = {
   // no options yet
   auth: boolean;
-}
+};
 
 type ServerConnzItem = {
   cid: number;
@@ -39,13 +40,13 @@ type ServerConnzItem = {
   start: string;
   account: string;
   authorized_user: string;
-}
+};
 
 type ServerConnz = {
   data: {
     connections: ServerConnzItem[];
-  }
-}
+  };
+};
 
 type UserConnectEvent = {
   id?: string;
@@ -54,15 +55,15 @@ type UserConnectEvent = {
     host: string;
     id: string;
     ver: string;
-  }
+  };
   client: {
     start: string;
     host: string;
     id: number;
     acc?: string;
     user?: string;
-  }
-}
+  };
+};
 
 type UserDisconnectEvent = UserConnectEvent;
 
@@ -70,11 +71,11 @@ export type DiscoveredMicroservice = MicroserviceInfo & {
   firstFoundAt: Date;
   lastFoundAt: Date;
   connection: UserConnectEvent | undefined;
-}
+};
 
 export type MonitorOptions = {
   discoveryTimeout: number,
-}
+};
 
 export class Monitor {
 
@@ -95,7 +96,13 @@ export class Monitor {
       ...options,
     };
 
-    const handleServiceRegistration = wrapMethod(this.broker, wrapThread('monitor', this.handleServiceRegistration.bind(this)), 'handleServiceStatus');
+    const handleServiceRegistration = wrapMethod(
+      this.broker,
+      attachThreadContext('monitor', this.handleServiceRegistration.bind(this)),
+      {
+        method: 'handleServiceStatus',
+      },
+    );
     broker.on(MicroserviceRegistrationSubject, handleServiceRegistration);
 
     if (systemBroker) {
@@ -171,11 +178,16 @@ export class Monitor {
     }
   }
 
-  private handleServiceRegistration(data: MicroserviceRegistration): void {
-    if (data.state === 'down')
-      this.removeService(data.info);
+  private handleServiceRegistration(
+    req: Request<MicroserviceRegistration>,
+    res: Response<void>,
+  ): void {
+    if (req.data.state === 'down')
+      this.removeService(req.data.info);
     else
-      this.saveService(data.info);
+      this.saveService(req.data.info);
+
+    res.sendNoResponse();
   }
 
   private async handleAccountConnect(msg: Message<UserConnectEvent>): Promise<void> {

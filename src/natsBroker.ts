@@ -2,13 +2,15 @@ import * as nats from 'nats';
 
 import { Broker } from './broker.js';
 import { debug } from './debug.js';
-import { StatusError } from './statusError.js';
 import { TokenEventEmitter } from './tokenEventEmitter.js';
 import {
   RequestOptions, SendOptions, BrokerResponse,
   Subject, RequestManyOptions, MessageHandler,
+  Headers,
 } from './types/broker.js';
-import { errorToString, randomId, subjectToStr } from './utils.js';
+import {
+  errorFromHeaders, errorToString, randomId, subjectToStr,
+} from './utils/index.js';
 
 export type { ConnectionOptions } from 'nats';
 
@@ -111,7 +113,7 @@ export class NatsBroker implements Broker {
     }
   }
 
-  private encodeHeaders(headers?: Iterable<[string, string]>): nats.MsgHdrs {
+  private encodeHeaders(headers?: Headers): nats.MsgHdrs {
 
     const result = nats.headers();
     if (headers)
@@ -276,14 +278,9 @@ export class NatsBroker implements Broker {
     );
 
     const headers = this.decodeHeaders(res.headers);
-    const errorMessageHeader = headers.find((h) => h[0] === 'X-Error-Message');
-    const errorStatusHeader = headers.find((h) => h[0] === 'X-Error-Status');
-    if (errorMessageHeader) {
-      if (errorStatusHeader)
-        throw new StatusError(errorStatusHeader[1], errorMessageHeader[1]);
-      else
-        throw new Error(errorMessageHeader[1]);
-    }
+    const error = errorFromHeaders(headers);
+    if (error)
+      throw error;
 
     return {
       data: this.codec.decode(res.data) as R,
