@@ -16,8 +16,13 @@ export type Request<T> = {
 
 export const noResponse = Symbol('no reponse');
 
+export type ResponseData<R> = {
+  data: R | symbol;
+  headers: [string, string][];
+};
+
 export type Response<R> = {
-  get closeWaiter(): Promise<void>;
+  get closeWaiter(): Promise<ResponseData<R>>;
   get isClosed(): boolean;
   setHeaders: (headers: Headers) => void;
   send: (data: R) => void;

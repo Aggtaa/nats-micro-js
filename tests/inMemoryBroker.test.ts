@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect } from 'chai';
 import Sinon from 'sinon';
 
@@ -118,6 +119,51 @@ describe('InMemoryBroker', function () {
     }
 
     expect(responses).to.eql(['papa 1']);
+  });
+
+  it('nested request', async function () {
+
+    const handler = wrapMethod(
+      broker,
+      async (_req, res): Promise<void> => {
+
+        const response = await broker.request<string, any>(
+          'nested hello',
+          'nested mama',
+          {
+            timeout: 600,
+          },
+        );
+        expect(response.data).to.eq('nested papa');
+
+        setTimeout(() => {
+          res.send('papa');
+        }, 1000);
+      },
+      { method: 'papa' },
+    );
+
+    broker.on('hello', handler);
+
+    const nestedHandler = wrapMethod(
+      broker,
+      (_req, res): void => {
+        res.send('nested papa');
+      },
+      { method: 'nested papa' },
+    );
+
+    broker.on('nested hello', nestedHandler);
+
+    const response = await broker.request<string, any>(
+      'hello',
+      'mama',
+      {
+        timeout: 3000,
+      },
+    );
+
+    expect(response.data).to.eq('papa');
   });
 
 });

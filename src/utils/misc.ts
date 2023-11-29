@@ -13,17 +13,17 @@ export function camelCase(s: string) {
 
 export function errorToString(error: unknown): string {
   if (typeof error === 'object' && error) {
-    return 'message' in error ? String(error.message) : String(error);
+    return 'message' in error ? String(error.message) : JSON.stringify(error);
   }
 
   return String(error);
 }
 
-export function subjectToStr(subject: Subject): string {
+export function subjectToString(subject: Subject): string {
   if (typeof (subject) === 'string')
     return subject;
 
-  if ('method' in subject) {
+  if (typeof (subject) === 'object' && ('method' in subject)) {
     if ('instance' in subject)
       return `${subject.microservice}.${subject.instance}.${subject.method}`;
 

@@ -6,7 +6,7 @@ import {
   MessageHandler, Subject, BrokerResponse,
   MessageMaybeReplyTo, RequestManyOptions, RequestOptions, SendOptions,
 } from './types/broker.js';
-import { errorFromHeaders, subjectToStr } from './utils/index.js';
+import { errorFromHeaders, subjectToString } from './utils/index.js';
 
 export class InMemoryBroker implements Broker {
 
@@ -32,14 +32,14 @@ export class InMemoryBroker implements Broker {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     queue?: string,
   ): void {
-    this.ee.on(subjectToStr(subject), listener);
+    this.ee.on(subjectToString(subject), listener);
   }
 
   public off<T>(
     subject: Subject,
     listener: MessageHandler<T>,
   ): void {
-    this.ee.off(subjectToStr(subject), listener);
+    this.ee.off(subjectToString(subject), listener);
   }
 
   public offAll() {
@@ -53,7 +53,7 @@ export class InMemoryBroker implements Broker {
   ): Promise<void> {
     debug.broker.debug(`Sending ${JSON.stringify(data)} to ${JSON.stringify(subject)}`);
     this.ee.emit(
-      subjectToStr(subject),
+      subjectToString(subject),
       {
         data,
         headers: options?.headers,
@@ -127,7 +127,11 @@ export class InMemoryBroker implements Broker {
     const results = this.requestMany<T, R>(
       subject,
       data,
-      { timeout: options?.timeout, limit: 1 },
+      {
+        headers: options?.headers,
+        timeout: options?.timeout,
+        limit: 1,
+      },
     );
 
     const result = await results.next();

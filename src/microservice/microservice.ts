@@ -241,5 +241,5 @@ export class Microservice {
         throw err;
       }
     };
-  };
+  }
 }

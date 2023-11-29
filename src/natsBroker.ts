@@ -9,7 +9,7 @@ import {
   Headers,
 } from './types/broker.js';
 import {
-  errorFromHeaders, errorToString, randomId, subjectToStr,
+  errorFromHeaders, errorToString, randomId, subjectToString,
 } from './utils/index.js';
 
 export type { ConnectionOptions } from 'nats';
@@ -169,7 +169,7 @@ export class NatsBroker implements Broker {
     listener: MessageHandler<T>,
     queue: string | undefined = undefined,
   ): void {
-    const subj = subjectToStr(subject);
+    const subj = subjectToString(subject);
     if (!this.subscriptions[subj]) {
       this.subscriptions[subj] = this.subscribe(subj, queue);
     }
@@ -180,7 +180,7 @@ export class NatsBroker implements Broker {
     subject: Subject,
     listener: MessageHandler<T>,
   ): void {
-    const subj = subjectToStr(subject);
+    const subj = subjectToString(subject);
     if (this.subscriptions[subj]) {
       this.unsubscribe(this.subscriptions[subj]);
       delete (this.subscriptions[subj]);
@@ -197,7 +197,7 @@ export class NatsBroker implements Broker {
       throw new Error('Not connected');
 
     await this.connection.publish(
-      subjectToStr(subject),
+      subjectToString(subject),
       this.codec.encode(data),
       {
         headers: this.encodeHeaders(options?.headers),
@@ -220,7 +220,7 @@ export class NatsBroker implements Broker {
 
     try {
       const responses = await this.connection.requestMany(
-        subjectToStr(subject),
+        subjectToString(subject),
         this.codec.encode(data),
         {
           headers: this.encodeHeaders(options?.headers),
@@ -267,7 +267,7 @@ export class NatsBroker implements Broker {
     const timeout = options?.timeout ?? 30000;
 
     const res = await this.connection.request(
-      subjectToStr(subject),
+      subjectToString(subject),
       this.codec.encode(data),
       {
         headers: this.encodeHeaders(options?.headers),
