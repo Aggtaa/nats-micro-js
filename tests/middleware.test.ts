@@ -7,9 +7,12 @@ import sinon, { SinonSpy } from 'sinon';
 import { broker, spyOff, spyOn } from './common.js';
 import {
   Handler,
+  MaybePromise,
   Microservice, MicroserviceConfig, MicroserviceOptions, Middleware,
   Request, Response,
 } from '../src/index.js';
+
+const sleepMs = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const createService = (
   data?: Partial<MicroserviceConfig>,
@@ -34,7 +37,7 @@ async function createServiceWithMiddlewareExt(
   middlewares: Middleware<unknown, unknown>[],
   handler: Handler<unknown, unknown> | undefined,
   postMiddlewares: Middleware<unknown, unknown>[],
-): Promise<SinonSpy<[Request<unknown>, Response<unknown>], void>> {
+): Promise<SinonSpy<[Request<unknown>, Response<unknown>], MaybePromise<void>>> {
 
   if (!handler)
     handler = (_req, res) => {
@@ -58,7 +61,7 @@ async function createServiceWithMiddlewareExt(
 
 async function createServiceWithMiddleware(
   ...middlewares: Middleware<unknown, unknown>[]
-): Promise<SinonSpy<[Request<unknown>, Response<unknown>], void>> {
+): Promise<SinonSpy<[Request<unknown>, Response<unknown>], MaybePromise<void>>> {
   return createServiceWithMiddlewareExt(
     middlewares,
     undefined,
@@ -260,9 +263,9 @@ describe('Middleware', function () {
     });
   });
 
-  it('Pass-thru middleware', async function () {
+  it('pass-thru middleware', async function () {
 
-    function middlewarePairGen() : [SinonSpy[], SinonSpy[]] {
+    function middlewarePairGen(): [SinonSpy[], SinonSpy[]] {
       let passThruVar = 1;
 
       return [
@@ -294,5 +297,32 @@ describe('Middleware', function () {
 
     expect(pair[0][0].callCount).to.eq(1);
     expect(pair[1][0].callCount).to.eq(1);
+  });
+
+  it('expect async middlewares to wait for eachother', async function () {
+
+    let callStack = 0;
+
+    const middleware = sinon.spy(async () => {
+      if (callStack !== 0)
+        throw new Error('Entered a mw not waiting for the previous mw to finish');
+
+      callStack++;
+      await sleepMs(100);
+      callStack--;
+    });
+
+    await createServiceWithMiddlewareExt(
+      [middleware, middleware, middleware, middleware],
+      undefined,
+      [middleware, middleware, middleware, middleware],
+    );
+
+    await expect(
+      broker.request<string, string>('hello.method1', ''),
+    ).to.eventually.have.property('data', 'method response');
+
+    expect(middleware.callCount).to.eq(8);
+    expect(callStack).to.eq(0);
   });
 });

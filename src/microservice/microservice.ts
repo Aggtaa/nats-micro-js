@@ -203,18 +203,18 @@ export class Microservice {
     name: string,
     method: MicroserviceMethodConfig<T, R>,
   ): Handler<T, R> {
-    return (req, res): void => {
+    return async (req, res): Promise<void> => {
       const start = process.hrtime.bigint();
       try {
         if (method.middlewares)
           for (const middleware of method.middlewares) {
-            middleware(req, res);
+            await middleware(req, res);
           }
         if (!res.isClosed) {
-          method.handler(req, res);
+          await method.handler(req, res);
           if (method.postMiddlewares)
             for (const middleware of method.postMiddlewares) {
-              middleware(req, res);
+              await middleware(req, res);
             }
         }
 

@@ -311,7 +311,7 @@ await Microservice.create(
           res.send(req.data);
         },
         middleware: [
-          (req: Request<string>, res: Response<string>) => {
+          async (req: Request<string>, res: Response<string>) => {
             console.log('hi! this code is run BEFORE the actual handler');
           },
         ],

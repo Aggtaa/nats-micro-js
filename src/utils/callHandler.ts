@@ -4,7 +4,7 @@ import {
   ResponseData,
 } from '../types/index.js';
 
-export function callHandler<T, R>(
+export async function callHandler<T, R>(
   handler: Handler<T, R>,
   data: T,
   subject: string,
@@ -20,7 +20,7 @@ export function callHandler<T, R>(
   };
   const res = new ResponseImpl<R>();
 
-  handler(req, res);
+  await handler(req, res);
 
   return res.closeWaiter;
 }

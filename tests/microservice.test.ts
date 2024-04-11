@@ -405,7 +405,7 @@ describe('Microservice and Discovery', function () {
     await service.addMethod(
       'method2',
       {
-        handler: () => 'method2',
+        handler: () => { /* NOP */ },
       },
     );
 
