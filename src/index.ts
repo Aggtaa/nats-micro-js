@@ -1,3 +1,5 @@
+import { errorFromHeaders } from './utils/misc.js';
+
 export * from './types/index.js';
 
 export * from './broker.js';
@@ -13,3 +15,7 @@ export * from './decorators/index.js';
 export { wrapMethod, wrapMethodSafe } from './utils/index.js';
 
 export * as z from 'zod';
+
+export const utils = {
+  errorFromHeaders,
+};

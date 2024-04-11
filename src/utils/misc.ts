@@ -33,7 +33,10 @@ export function subjectToString(subject: Subject): string {
   throw new Error('Unknown subject format');
 }
 
-export function errorFromHeaders(headers: [string, string][]): Error | undefined {
+export function errorFromHeaders(headers: [string, string][] | undefined): Error | undefined {
+  if (!headers)
+    return undefined;
+
   const errorMessageHeader = headers.find((h) => h[0] === 'X-Error-Message');
   const errorStatusHeader = headers.find((h) => h[0] === 'X-Error-Status');
   if (errorMessageHeader) {
