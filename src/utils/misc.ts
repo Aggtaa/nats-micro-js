@@ -33,12 +33,16 @@ export function subjectToString(subject: Subject): string {
   throw new Error('Unknown subject format');
 }
 
-export function errorFromHeaders(headers: [string, string][] | undefined): Error | undefined {
+export function errorFromHeaders(
+  headers: Iterable<[string, string]> | undefined,
+): Error | undefined {
   if (!headers)
     return undefined;
 
-  const errorMessageHeader = headers.find((h) => h[0] === 'X-Error-Message');
-  const errorStatusHeader = headers.find((h) => h[0] === 'X-Error-Status');
+  const headersArray = Array.from(headers);
+
+  const errorMessageHeader = headersArray.find((h) => h[0] === 'X-Error-Message');
+  const errorStatusHeader = headersArray.find((h) => h[0] === 'X-Error-Status');
   if (errorMessageHeader) {
     if (errorStatusHeader)
       return new StatusError(errorStatusHeader[1], errorMessageHeader[1]);
@@ -47,3 +51,4 @@ export function errorFromHeaders(headers: [string, string][] | undefined): Error
 
   return undefined;
 }
+
