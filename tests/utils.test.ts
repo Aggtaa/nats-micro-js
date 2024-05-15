@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 
-import { StatusError } from '../src/statusError.js';
 import { errorToString, subjectToString } from '../src/utils/index.js';
 
 describe('Utils', function () {

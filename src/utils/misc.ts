@@ -7,7 +7,7 @@ export function randomId(): string {
   return nanoid(16);
 }
 
-export function camelCase(s: string) {
+export function kebabCase(s: string) {
   return s.replace(/(?<=.)([A-Z])/g, '-$1').toLowerCase();
 }
 
@@ -51,4 +51,3 @@ export function errorFromHeaders(
 
   return undefined;
 }
-

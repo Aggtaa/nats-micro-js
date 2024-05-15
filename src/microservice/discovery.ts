@@ -42,7 +42,7 @@ export class Discovery {
 
   constructor(
     private readonly broker: Broker,
-    public readonly configOrGetter: MicroserviceConfig | (() => MicroserviceConfig),
+    private readonly configOrGetter: MicroserviceConfig | (() => MicroserviceConfig),
     private readonly options: DiscoveryOptions = {},
   ) {
     this.startedAt = new Date();
@@ -201,7 +201,7 @@ export class Discovery {
     return `${this.config.name}.${name}`;
   }
 
-  private makeInfo(): MicroserviceInfo {
+  public makeInfo(): MicroserviceInfo {
 
     return {
       ...this.makeMicroserviceData(),

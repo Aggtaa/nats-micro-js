@@ -1,31 +1,27 @@
-import { isUndefined } from 'util';
-
 import { Handler, MicroserviceConfig, MicroserviceMethodConfig } from '../types/index.js';
+import { kebabCase } from '../utils/misc.js';
 
-export type StoredMicroserviceMethod<T, R> = {
-  target: Handler<T, R>;
-  name?: string;
-  config: { name?: string; } & MicroserviceMethodConfig<T, R>;
+export type StoredMicroserviceClassMethod<T, R> = {
+  method: Handler<T, R>;
+  config: { name?: string; } & Omit<MicroserviceMethodConfig<T, R>, 'handler'>;
 };
 
-export type StoredMicroservice = {
+export type StoredMicroserviceClass = {
   target: unknown; // class constructor
   config: Omit<MicroserviceConfig, 'methods'>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  methods: StoredMicroserviceMethod<any, any>[];
+  methods: StoredMicroserviceClassMethod<any, any>[];
 };
 
-export class Storage {
+export class ClassStorage {
+  public readonly items: StoredMicroserviceClass[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public readonly microservices: StoredMicroservice[] = [];
-
-  public ensureClassAdded(target: unknown): StoredMicroservice {
-    const existing = this.microservices.find((ms) => ms.target === target);
+  public ensureClassAdded(target: unknown): StoredMicroserviceClass {
+    const existing = this.items.find((ms) => ms.target === target);
     if (existing)
       return existing;
 
-    const added: StoredMicroservice = {
+    const added: StoredMicroserviceClass = {
       target: target,
       config: {
         name: '',
@@ -35,24 +31,22 @@ export class Storage {
       },
       methods: [],
     };
-    this.microservices.push(added);
+    this.items.push(added);
     return added;
   }
 
   public ensureClassMethodAdded<T, R>(
     targetClass: unknown,
-    targetMethod: Handler<T, R>,
-  ): StoredMicroserviceMethod<T, R> {
+    classMethod: Handler<T, R>,
+  ): StoredMicroserviceClassMethod<T, R> {
     const storedClass = this.ensureClassAdded(targetClass);
-    const existing = storedClass.methods.find((m) => m.target === targetMethod);
+    const existing = storedClass.methods.find((m) => m.method === classMethod);
     if (existing)
       return existing;
 
-    const added: StoredMicroserviceMethod<T, R> = {
-      target: targetMethod,
-      config: {
-        handler: targetMethod,
-      },
+    const added: StoredMicroserviceClassMethod<T, R> = {
+      method: classMethod,
+      config: {},
     };
     storedClass.methods.push(added);
     return added;
@@ -60,14 +54,20 @@ export class Storage {
 
   getConfig<T extends object>(target: T): MicroserviceConfig | undefined {
     const constructor = Object.getPrototypeOf(target).constructor.prototype;
-    const ms = this.microservices.find((m) => m.target === constructor);
+    const ms = this.items.find((m) => m.target === constructor);
     if (!ms)
       return undefined;
 
     const methods: MicroserviceConfig['methods'] = {};
     for (const method of ms.methods) {
-      if (!isUndefined(method.name))
-        methods[method.name] = method.config;
+      const methodName = method.config.name ?? kebabCase(method.method.name);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const targetMethod = (target as any)[method.method.name];
+      if (!targetMethod)
+        throw new Error(`Class method ${method.method.name} is missing in target object`);
+
+      methods[methodName] = { ...method.config, handler: targetMethod };
     }
 
     return {
@@ -76,16 +76,21 @@ export class Storage {
     };
   }
 
-  addMethod<T, R>(
-    targetClass: unknown,
-    targetMethod: Handler<T, R>,
-    data: Partial<MicroserviceMethodConfig<T, R>>,
-  ): void {
+  // addMethod<T, R>(
+  //   targetClass: unknown,
+  //   targetMethodName: string,
+  //   targetMethod: Handler<T, R>,
+  //   data: Partial<MicroserviceMethodConfig<T, R>>,
+  // ): void {
 
-    const storedMethod = storage.ensureClassMethodAdded(targetClass, targetMethod);
+  //   const storedMethod = {
+  //     ...storage.ensureClassMethodAdded<T, R>(targetClass, targetMethodName),
+  //   };
 
-    storedMethod.config = { ...storedMethod.config, ...data };
-  }
+  //   storedMethod.config.handler = targetMethod;
+
+  //   storedMethod.config = { ...storedMethod.config, ...data };
+  // }
 }
 
-export const storage = new Storage();
+export const storage = new ClassStorage();

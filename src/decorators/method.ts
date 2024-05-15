@@ -4,7 +4,6 @@ import {
   MethodDecoratorOptions,
   MethodDescriptor,
 } from '../types/index.js';
-import { camelCase } from '../utils/index.js';
 
 export function method<
   T = void,
@@ -20,11 +19,11 @@ export function method<
     if (!descriptor.value)
       throw new Error('Use method decorators only on class methods');
 
-    const storedMethod = storage.ensureClassMethodAdded(target, descriptor.value);
-    storedMethod.name = options?.name ?? camelCase(String(key));
+    const storedMethod =
+      storage.ensureClassMethodAdded<T, R>(target, descriptor.value);
+    // storedMethod.name = methodName;
     storedMethod.config = {
       ...storedMethod.config,
-      handler: descriptor.value,
       ...options,
     };
 

@@ -12,6 +12,8 @@ export * from './microservice/discovery.js';
 
 export * from './decorators/index.js';
 
+export * from './statusError.js';
+
 export { wrapMethod, wrapMethodSafe } from './utils/index.js';
 
 export * as z from 'zod';

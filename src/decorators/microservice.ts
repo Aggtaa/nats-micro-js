@@ -2,7 +2,7 @@
 
 import { storage } from './storage.js';
 import { MicroserviceDecoratorOptions } from '../types/index.js';
-import { camelCase } from '../utils/index.js';
+import { kebabCase } from '../utils/index.js';
 
 export function microservice<
   T,
@@ -17,7 +17,7 @@ export function microservice<
   ): { new(...args: C): T } | void => {
 
     const name = options?.name
-      ?? camelCase(target.name.replace(/microservice/i, ''));
+      ?? kebabCase(target.name.replace(/microservice/i, ''));
 
     const ms = storage.ensureClassAdded(target.prototype);
 

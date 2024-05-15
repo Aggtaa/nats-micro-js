@@ -199,6 +199,8 @@ module.exports = {
     'no-sequences': 'off',
     'no-prototype-builtins': 'off',
     'no-shadow': 'off',
+    'no-empty-function': 'off',
+    '@typescript-eslint/no-empty-function': 'error',
     '@typescript-eslint/no-shadow': 'error',
     '@typescript-eslint/typedef': [
       'off',

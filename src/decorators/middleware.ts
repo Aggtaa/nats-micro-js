@@ -16,7 +16,7 @@ function middleware<
     if (!descriptor.value)
       throw new Error('Use method decorators only on class methods');
 
-    const storedMethod = storage.ensureClassMethodAdded(target, descriptor.value);
+    const storedMethod = storage.ensureClassMethodAdded<T, R>(target, descriptor.value);
     storedMethod.config = {
       ...storedMethod.config,
       middlewares: [...(storedMethod.config.middlewares ?? []), ...middlewares],

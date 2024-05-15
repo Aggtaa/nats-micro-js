@@ -12,7 +12,9 @@ import {
   Request, Response,
 } from '../src/index.js';
 
-const sleepMs = (ms: number) => new Promise((res) => setTimeout(res, ms));
+const sleepMs = (ms: number): Promise<unknown> => new Promise((res) => {
+  setTimeout(res, ms);
+});
 
 const createService = (
   data?: Partial<MicroserviceConfig>,
