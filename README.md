@@ -342,6 +342,8 @@ export default class EchoMicroservice {
 }
 ```
 
+Note, that *if you close `Request` in any pre-handler middleware, the handler itself and all post-handler middlewares that you might have registered, will not be executed*!
+
 ## [Microservices with dynamic/variable endpoints or config](#dynamic-config)
 
 If you want to publish a microservice that is updated in runtime and can change any of 
@@ -371,5 +373,3 @@ delete (methods.method1);
 delete (methods.method2);
 await service.publish();
 ```
-
-Note, that *if you close `Request` in any pre-handler middleware, the handler itself and all post-handler middlewares that you might have registered, will not be executed*!
