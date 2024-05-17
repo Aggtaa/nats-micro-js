@@ -70,6 +70,10 @@ export class Microservice {
     return service;
   }
 
+  public async publish(): Promise<void> {
+    await this.discovery?.publish();
+  }
+
   public get id(): Readonly<string> {
     return Object.freeze(this.discovery.id);
   }
@@ -159,10 +163,10 @@ export class Microservice {
 
     debug.ms.thread.info(`Starting microservice ${cfg.name}(${Object.keys(cfg.methods).join(',')})`);
 
-    await this.discovery.start();
-
     for (const [name, method] of Object.entries(cfg.methods))
       await this.startMethod(name, method);
+
+    await this.discovery.start();
 
     return this;
   }
@@ -184,17 +188,6 @@ export class Microservice {
       await this.stopMethod(name, method);
 
     await this.discovery.stop();
-
-    return this;
-  }
-
-  public addMethod<R, T>(
-    name: string,
-    method: MicroserviceMethodConfig<R, T>,
-  ): this {
-
-    this.discovery.addMethod(name, method);
-    this.startMethod(name, method);
 
     return this;
   }

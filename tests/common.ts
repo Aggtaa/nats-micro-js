@@ -1,12 +1,17 @@
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import chaiLike from 'chai-like';
 import chaiSubset from 'chai-subset';
+import chaiThings from 'chai-things';
 import Sinon from 'sinon';
 
 import { InMemoryBroker } from '../src/inMemoryBroker.js';
 
 chai.use(chaiAsPromised);
 chai.use(chaiSubset);
+
+chai.use(chaiLike);
+chai.use(chaiThings); // Don't swap these two
 
 export const sleep =
   (ms: number) => new Promise((res) => {

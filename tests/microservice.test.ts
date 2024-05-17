@@ -8,6 +8,7 @@ import {
   Microservice, MicroserviceConfig, MicroserviceInfo, MicroserviceMethodConfig,
   MicroservicePing, MicroserviceSchema, MicroserviceStats, MicroserviceOptions,
   Request, Response, BrokerResponse,
+  MessageMaybeReplyTo, MicroserviceRegistrationSubject, MicroserviceRegistration,
 } from '../src/index.js';
 
 const createService = (
@@ -43,6 +44,31 @@ const createServiceWithMethod = (
   },
 });
 
+const createDynamicService = async (noStopMethod: boolean = true): Promise<{
+  service: Microservice,
+  methods: Record<string, MicroserviceMethodConfig<void, string>>;
+}> => {
+  const methods: Record<string, MicroserviceMethodConfig<void, string>> = {};
+  return {
+    methods,
+    service: await Microservice.create(
+      broker,
+      () => ({
+        name: 'hello',
+        description: 'Hello service',
+        version: '5.5.5',
+        metadata: {
+          key1: 'value1',
+        },
+        methods,
+      }),
+      {
+        noStopMethod,
+      },
+    ),
+  };
+};
+
 describe('Microservice and Discovery', function () {
 
   afterEach(function () {
@@ -64,23 +90,64 @@ describe('Microservice and Discovery', function () {
     }
   });
 
-  it('dynamic config', async function () {
+  describe('dynamic config', function () {
 
-    const service = await Microservice.create(
-      broker,
-      () => ({
-        name: 'hello',
-        description: 'Hello service',
-        version: '5.5.5',
-        metadata: {
-          key1: 'value1',
-        },
-        methods: {
-        },
-      }),
-    );
+    const counter = Sinon.stub<[MessageMaybeReplyTo<MicroserviceRegistration>, string]>();
 
-    expect(service).to.exist;
+    beforeEach(function () {
+      broker.on(MicroserviceRegistrationSubject, counter);
+      counter.resetHistory();
+    });
+
+    afterEach(function () {
+      broker.off(MicroserviceRegistrationSubject, counter);
+    });
+
+    it('initial publication', async function () {
+
+      await createDynamicService();
+
+      const info: BrokerResponse<MicroserviceInfo | undefined> =
+        await broker.request('$SRV.INFO', '');
+
+      expect(info.data).to.exist;
+      expect(info.data).to.containSubset({
+        endpoints: [],
+      });
+      expect(counter.callCount).to.eq(1);
+      expect(counter.firstCall.firstArg.data.info.endpoints).to.be.empty;
+    });
+
+    it('subsequent publication', async function () {
+
+      const { service, methods } = await createDynamicService();
+
+      methods.method1 = { handler: (_, rs) => rs.send('') };
+      await service.publish();
+
+      methods.method2 = { handler: (_, rs) => rs.send('') };
+      await service.publish();
+
+      delete (methods.method1);
+      delete (methods.method2);
+      await service.publish();
+
+      expect(counter.callCount).to.eq(4);
+
+      expect(counter.getCall(0).firstArg.data.info.endpoints).to.be.empty;
+
+      expect(counter.getCall(1).firstArg.data.info.endpoints)
+        .to.be.an('array')
+        .that.contains.something.like({ name: 'method1' });
+
+      expect(counter.getCall(2).firstArg.data.info.endpoints)
+        .to.be.an('array')
+        .that.contains.something.like({ name: 'method1' });
+      expect(counter.getCall(2).firstArg.data.info.endpoints)
+        .to.contain.something.like({ name: 'method2' });
+
+      expect(counter.getCall(3).firstArg.data.info.endpoints).to.be.empty;
+    });
   });
 
   it('from class', async function () {
@@ -395,32 +462,6 @@ describe('Microservice and Discovery', function () {
         num_errors: 1,
         num_requests: 1,
       });
-    });
-  });
-
-  it('dynamic method add', async function () {
-
-    const service = await createServiceWithMethod();
-
-    await service.addMethod(
-      'method2',
-      {
-        handler: () => { /* NOP */ },
-      },
-    );
-
-    const info = await broker.request('$SRV.INFO', '');
-
-    expect(info.data).to.exist;
-    expect(info.data).to.containSubset({
-      endpoints: [
-        {
-          name: 'method1',
-        },
-        {
-          name: 'method2',
-        },
-      ],
     });
   });
 

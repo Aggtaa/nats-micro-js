@@ -38,8 +38,6 @@ export class Discovery {
   private readonly handlePingWrap: MessageHandler<void>;
   private readonly handleStatsWrap: MessageHandler<void>;
 
-  private readonly lateAddedMethods: MicroserviceConfig['methods'] = {};
-
   constructor(
     private readonly broker: Broker,
     private readonly configOrGetter: MicroserviceConfig | (() => MicroserviceConfig),
@@ -71,11 +69,6 @@ export class Discovery {
     let config = this.originalConfig;
     if (this.options.transformConfig)
       config = this.options.transformConfig(config);
-
-    config.methods = {
-      ...config.methods,
-      ...this.lateAddedMethods,
-    };
 
     return config;
   }
@@ -125,6 +118,10 @@ export class Discovery {
     return this;
   }
 
+  public async publish(): Promise<void> {
+    await this.publishRegistration('up');
+  }
+
   private async publishRegistration(state: MicroserviceRegistration['state']): Promise<void> {
 
     await this.broker.send(
@@ -134,13 +131,6 @@ export class Discovery {
         state,
       } as MicroserviceRegistration,
     );
-  }
-
-  public addMethod<R, T>(
-    name: string,
-    method: MicroserviceMethodConfig<R, T>,
-  ): void {
-    this.lateAddedMethods[name] = method;
   }
 
   public profileMethod(

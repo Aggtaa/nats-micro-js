@@ -343,4 +343,34 @@ export default class EchoMicroservice {
 }
 ```
 
+## Microservices with dynamic/variable endpoints or config
+
+If you want to publish a microservice that is updated in runtime and can change any of 
+it's config data, including metadata or list of endpoints, you can use dynamic config 
+provision:
+
+```ts
+const methods: Record<string, MicroserviceMethodConfig<void, string>> = {};
+
+const service = await Microservice.create(
+    broker,
+    () => ({
+      name: 'hello',
+      description: 'Hello service',
+      version: '5.5.5',
+      methods,
+    }),
+  );
+
+methods.method1 = { handler: (_, rs) => rs.send('') };
+await service.publish();
+
+methods.method2 = { handler: (_, rs) => rs.send('') };
+await service.publish();
+
+delete (methods.method1);
+delete (methods.method2);
+await service.publish();
+```
+
 Note, that *if you close `Request` in any pre-handler middleware, the handler itself and all post-handler middlewares that you might have registered, will not be executed*!
