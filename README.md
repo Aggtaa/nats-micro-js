@@ -1,12 +1,10 @@
-# NATS Microservice Library
+# [NATS Microservice Library](#top)
 
 ![](https://img.shields.io/badge/Coverage-93%25-83A603.svg?style=flat&prefix=$coverage$)
 
-
-
 A convenient microservice library based on NATS and compatible with nats-go microservices
 
-## Description
+## [Description](#description)
 
 This is a **typescript-first** library that provides a convinient (in 10 lines of code or less!) way to write **microservices** with out of the box **auto discovery**, **observability** and **load balancing**.
 
@@ -14,12 +12,12 @@ Full interoperability with [nastcli](https://github.com/nats-io/natscli) microse
 
 It also supports service schema discovery which is not (yet?) supported by `nats micro`
 
-## Limitations / TODO
+## [Limitations / TODO](#todo)
 
 1. Automatic type schemas and validation is incomplete
 2. `InMemoryBroker` mock class does not use queue groups and thus does not load balance
 
-## Installation
+## [Installation](#installation)
 
 ```bash
 npm install nats-micro
@@ -43,11 +41,11 @@ const { microservice, method } = require('nats-micro');
 
 and so on. Everything is exported at the package root.
 
-## Usage
+## [Usage](#starting)
 
 Starting a microservice is extremely simple:
 
-### Functional way
+### [Functional way](#starting-functionally)
 ```ts
 const broker = await new NatsBroker('echo' + process.pid).connect();
 
@@ -77,7 +75,7 @@ await Microservice.create(
 );
 ```
 
-### Declarative way
+### [Declarative way](#starting-declaratively)
 ```ts
 class EchoMicroservice {
   public get config(): MicroserviceConfig {
@@ -107,7 +105,7 @@ const broker = await new NatsBroker('echo' + process.pid).connect();
 await Microservice.create(broker, echoMicroservice.config);
 ```
 
-### Using decorators 
+### [Using decorators](#starting-with-decorators) 
 ```ts
 @microservice({ name: 'echo', description: 'Decorated service' })
 // @microservice() // as simple as this 
@@ -132,7 +130,7 @@ const broker = await new NatsBroker('echo' + process.pid).connect();
 await Microservice.createFromClass(broker, echoMicroservice);
 ```
 
-## Stopping a microservice
+## [Stopping a microservice](#stopping)
 
 You can easily stop a microservice
 ```ts
@@ -145,7 +143,7 @@ To start if again just use the same code as before:
 await Microservice.createFromClass(broker, echoMicroservice);
 ```
 
-## Getting received subject and headers
+## [Getting received subject and headers](#request-subject-and-headers)
 
 * You may need to identify what subject a message arrived at.
 * You may also need to read incoming message headers
@@ -153,12 +151,13 @@ await Microservice.createFromClass(broker, echoMicroservice);
 All this can be achieved in a handler method using its second argument
 ```ts
 @method() 
-private configChangeEvent(data: WhatEventTypeYouUse, payload: { subject, headers }): void {
+private configChangeEvent(req: Request<WhatEventTypeYouUse>, res: Response<void>): void {
+  const { subject, headers, data } = request;
   // ...
 }
 ```
 
-## Accessing a microservice underlying connection and discovery connection information
+## [Accessing a microservice underlying connection and discovery connection information](#__microservice)
 
 Using `Microservice.createFromClass` method gives you ability to access the microservice created and its discovery 
 
@@ -181,7 +180,7 @@ assert(echoMicroservice.__microservice === microservice);
 console.log(`Instance ID assigned: ${echoMicroservice.__microservice.discovery.id}`);
 ```
 
-## Load balancing
+## [Load balancing](#load-balancing)
 
 When you start a number of number of instances of the same microservice, normally, NATS will automatically balance any calls to the a method across all the microservice instances.
 
@@ -207,23 +206,23 @@ export default class BalanceDemoMicroservice {
 }
 ```
 
-### Balanced behavior (default)
+### [Balanced behavior (default)](#balanced-endpoints)
 If you call `balance-demo.balanced`, having N instances of `balance-demo` microservice, every one of them will receive and respond to every Nth call on average. The logic of load balancing is based on NATS internal "queue groups" functionality ans is described in its documentation.
 
-### Unbalanced behavior
+### [Unbalanced behavior](#unbalanced-endpoints)
 If you send a call to `balance-demo.all` however, it will be received and responded by **every** `balance-demo` microservice that has the `all` method.
 
 This is useful for broadcast event buses, when you want all microservices to receive an even no matter what and possibly respond to it.
 
 Having this utilized be ready to receiving multiple responses to a request.
 
-### Local endpoint behavior
+### [Local endpoint behavior](#local-endpoints)
 
 As for the `balance-demo.local`, there is no such subject any microservice is subcribed to. Instead instance `ID` of the `balance-demo` microservice will listen to `balance-demo.<microservice ID>.local` only. You will need to use `broker.request(..., { microservice: 'balance-demo', instance: '<microservice ID>', method: 'local' }, ...)` for that.
 
 This feature is useful for scenarios like when you have multiple instances of the same microservice, want to discover their IDs and then address specific ones of them.
 
-## Microservice discovery and monitoring
+## [Microservice discovery and monitoring](#monitor-discovery)
 
 While you can use NATS native way to discover currently running microservices by sending messages to subject "$SRV.INFO" and collecting their responses, `nats-micro` library provides an additional convenient way of doing this.
 
@@ -259,7 +258,7 @@ monitor.startPeriodicDiscovery(60000, 10000);
 monitor.stopPeriodicDiscovery(); 
 ```
 
-## Microservice registration and deregistration
+## [Microservice registration and deregistration](#monitor-service-deregistration)
 
 Using `Monitor` you can not only watch for microservices coming online, but also for disconnecting ones.
 
@@ -280,7 +279,7 @@ As every microservice created with `nats-micro` has a `_nats.client.id` value in
 
 Having a NATS connection information also allows accessing client id, IP address, username and account name for every microservice.
 
-## Unit tesing
+## [Unit tesing](#unit-testing)
 
 If you need to unittest your code that uses `nats-miro`, there is a helpful class `InMemoryBroker` that mocks NATS connection without real NATS or even any network.
 
@@ -292,7 +291,7 @@ import { InMemoryBroker } from 'nats-micro';
 const { InMemoryBroker } = require('nats-micro');
 ```
 
-## Middleware
+## [Middleware](#middleware)
 
 You can have additional code attached to microservice calls, that is run before and/or after the method handlers.
 
@@ -343,7 +342,7 @@ export default class EchoMicroservice {
 }
 ```
 
-## Microservices with dynamic/variable endpoints or config
+## [Microservices with dynamic/variable endpoints or config](#dynamic-config)
 
 If you want to publish a microservice that is updated in runtime and can change any of 
 it's config data, including metadata or list of endpoints, you can use dynamic config 
