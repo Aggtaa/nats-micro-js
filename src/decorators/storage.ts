@@ -1,19 +1,19 @@
 import { Handler, MicroserviceConfig, MicroserviceMethodConfig } from '../types/index.js';
 import { kebabCase } from '../utils/misc.js';
 
-export type StoredMicroserviceClassMethod<T, R> = {
+type StoredMicroserviceClassMethod<T, R> = {
   method: Handler<T, R>;
   config: { name?: string; } & Omit<MicroserviceMethodConfig<T, R>, 'handler'>;
 };
 
-export type StoredMicroserviceClass = {
+type StoredMicroserviceClass = {
   target: unknown; // class constructor
   config: Omit<MicroserviceConfig, 'methods'>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   methods: StoredMicroserviceClassMethod<any, any>[];
 };
 
-export class ClassStorage {
+class ClassStorage {
   public readonly items: StoredMicroserviceClass[] = [];
 
   public ensureClassAdded(target: unknown): StoredMicroserviceClass {
@@ -75,22 +75,6 @@ export class ClassStorage {
       methods,
     };
   }
-
-  // addMethod<T, R>(
-  //   targetClass: unknown,
-  //   targetMethodName: string,
-  //   targetMethod: Handler<T, R>,
-  //   data: Partial<MicroserviceMethodConfig<T, R>>,
-  // ): void {
-
-  //   const storedMethod = {
-  //     ...storage.ensureClassMethodAdded<T, R>(targetClass, targetMethodName),
-  //   };
-
-  //   storedMethod.config.handler = targetMethod;
-
-  //   storedMethod.config = { ...storedMethod.config, ...data };
-  // }
 }
 
 export const storage = new ClassStorage();
