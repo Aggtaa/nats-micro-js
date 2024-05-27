@@ -291,6 +291,8 @@ export class Monitor {
     options?: Partial<MonitorDiscoveryOptions>,
   ): Promise<void> {
 
+    const servicesSnapshot = [...this.services];
+
     const servicesIterator = this.broker.requestMany<string, MicroserviceInfo>(
       '$SRV.INFO',
       '',
@@ -308,7 +310,10 @@ export class Monitor {
 
     if (!options?.doNotClear) {
 
-      const servicesToForget = this.services
+      // compare to this.services BEFORE requestMany was made
+      // as there can be new additions after $SRV.INFO sent and
+      // before we get to this point
+      const servicesToForget = servicesSnapshot
         .filter((oldSvc) => !services.some((newSvc) => newSvc.id === oldSvc.id));
 
       if (servicesToForget.length > 0) {
