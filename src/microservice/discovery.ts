@@ -38,6 +38,8 @@ export class Discovery {
   private readonly handlePingWrap: MessageHandler<void>;
   private readonly handleStatsWrap: MessageHandler<void>;
 
+  private _isStarted = false;
+
   constructor(
     private readonly broker: Broker,
     private readonly configOrGetter: MicroserviceConfig | (() => MicroserviceConfig),
@@ -73,7 +75,13 @@ export class Discovery {
     return config;
   }
 
+  public get isStarted(): boolean {
+    return this._isStarted;
+  }
+
   public async start(): Promise<this> {
+
+    this._isStarted = true;
 
     this.broker.on('$SRV.SCHEMA', this.handleSchemaWrap);
     this.broker.on(`$SRV.SCHEMA.${this.config.name}`, this.handleSchemaWrap);
@@ -91,12 +99,14 @@ export class Discovery {
     this.broker.on(`$SRV.STATS.${this.config.name}`, this.handleStatsWrap);
     this.broker.on(`$SRV.STATS.${this.config.name}.${this.id}`, this.handleStatsWrap);
 
-    await this.publishRegistration('up');
+    await this.publish();
 
     return this;
   }
 
   public async stop(): Promise<this> {
+    this._isStarted = false;
+
     await this.publishRegistration('down');
 
     this.broker.off('$SRV.SCHEMA', this.handleSchemaWrap);

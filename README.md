@@ -364,12 +364,12 @@ const service = await Microservice.create(
   );
 
 methods.method1 = { handler: (_, rs) => rs.send('') };
-await service.publish();
+await service.restart();
 
 methods.method2 = { handler: (_, rs) => rs.send('') };
-await service.publish();
+await service.restart();
 
 delete (methods.method1);
 delete (methods.method2);
-await service.publish();
+await service.restart();
 ```

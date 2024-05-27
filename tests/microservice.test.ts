@@ -92,15 +92,15 @@ describe('Microservice and Discovery', function () {
 
   describe('dynamic config', function () {
 
-    const counter = Sinon.stub<[MessageMaybeReplyTo<MicroserviceRegistration>, string]>();
+    const registrationCounter = Sinon.stub<[MessageMaybeReplyTo<MicroserviceRegistration>, string]>();
 
     beforeEach(function () {
-      broker.on(MicroserviceRegistrationSubject, counter);
-      counter.resetHistory();
+      broker.on(MicroserviceRegistrationSubject, registrationCounter);
+      registrationCounter.resetHistory();
     });
 
     afterEach(function () {
-      broker.off(MicroserviceRegistrationSubject, counter);
+      broker.off(MicroserviceRegistrationSubject, registrationCounter);
     });
 
     it('initial publication', async function () {
@@ -114,8 +114,8 @@ describe('Microservice and Discovery', function () {
       expect(info.data).to.containSubset({
         endpoints: [],
       });
-      expect(counter.callCount).to.eq(1);
-      expect(counter.firstCall.firstArg.data.info.endpoints).to.be.empty;
+      expect(registrationCounter.callCount).to.eq(1);
+      expect(registrationCounter.firstCall.firstArg.data.info.endpoints).to.be.empty;
     });
 
     it('subsequent publication', async function () {
@@ -123,30 +123,30 @@ describe('Microservice and Discovery', function () {
       const { service, methods } = await createDynamicService();
 
       methods.method1 = { handler: (_, rs) => rs.send('') };
-      await service.publish();
+      await service.restart();
 
       methods.method2 = { handler: (_, rs) => rs.send('') };
-      await service.publish();
+      await service.restart();
 
       delete (methods.method1);
       delete (methods.method2);
-      await service.publish();
+      await service.restart();
 
-      expect(counter.callCount).to.eq(4);
+      expect(registrationCounter.callCount).to.eq(4);
 
-      expect(counter.getCall(0).firstArg.data.info.endpoints).to.be.empty;
+      expect(registrationCounter.getCall(0).firstArg.data.info.endpoints).to.be.empty;
 
-      expect(counter.getCall(1).firstArg.data.info.endpoints)
+      expect(registrationCounter.getCall(1).firstArg.data.info.endpoints)
         .to.be.an('array')
         .that.contains.something.like({ name: 'method1' });
 
-      expect(counter.getCall(2).firstArg.data.info.endpoints)
+      expect(registrationCounter.getCall(2).firstArg.data.info.endpoints)
         .to.be.an('array')
         .that.contains.something.like({ name: 'method1' });
-      expect(counter.getCall(2).firstArg.data.info.endpoints)
+      expect(registrationCounter.getCall(2).firstArg.data.info.endpoints)
         .to.contain.something.like({ name: 'method2' });
 
-      expect(counter.getCall(3).firstArg.data.info.endpoints).to.be.empty;
+      expect(registrationCounter.getCall(3).firstArg.data.info.endpoints).to.be.empty;
     });
   });
 

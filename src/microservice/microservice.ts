@@ -16,13 +16,19 @@ export type MicroserviceOptions = {
   noStopMethod?: boolean;
 };
 
+type StartedMethod<R, T> = {
+  handler: MessageHandler<T>;
+  config: MicroserviceMethodConfig<R, T>;
+};
+
 export class Microservice {
 
   private readonly ee = new EventEmitter();
 
   public readonly discovery: Discovery;
 
-  private readonly startedMethods: Record<string, MessageHandler<unknown>> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly startedMethods: Record<string, StartedMethod<any, any>> = {};
 
   constructor(
     public readonly broker: Broker,
@@ -68,10 +74,6 @@ export class Microservice {
     (target as any)['__microservice'] = service;
 
     return service;
-  }
-
-  public async publish(): Promise<void> {
-    await this.discovery?.publish();
   }
 
   public get id(): Readonly<string> {
@@ -133,7 +135,10 @@ export class Microservice {
       },
     );
 
-    this.startedMethods[name] = methodWrap as MessageHandler<unknown>;
+    this.startedMethods[name] = {
+      handler: methodWrap as MessageHandler<unknown>,
+      config: method,
+    };
 
     this.broker.on<R>(
       this.discovery.getMethodSubject(name, method),
@@ -149,7 +154,7 @@ export class Microservice {
 
     this.broker.off<R>(
       this.discovery.getMethodSubject(name, method),
-      this.startedMethods[name],
+      this.startedMethods[name].handler,
     );
 
     delete (this.startedMethods[name]);
@@ -167,6 +172,27 @@ export class Microservice {
       await this.startMethod(name, method);
 
     await this.discovery.start();
+
+    return this;
+  }
+
+  public async restart(): Promise<this> {
+    if (!this.discovery.isStarted)
+      return this.start();
+
+    threadContext.init(this.discovery.id);
+
+    const cfg = this.discovery.config;
+
+    debug.ms.thread.info(`Restarting microservice ${cfg.name}(${Object.keys(cfg.methods).join(',')})`);
+
+    for (const [name, method] of Object.entries(this.startedMethods))
+      await this.stopMethod(name, method.config);
+
+    for (const [name, method] of Object.entries(cfg.methods))
+      await this.startMethod(name, method);
+
+    await this.discovery.publish();
 
     return this;
   }
