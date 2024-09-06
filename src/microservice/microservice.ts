@@ -10,6 +10,7 @@ import {
 } from '../types/index.js';
 import {
   errorToString, attachThreadContext, wrapMethodSafe,
+  asyncLocalStorage,
 } from '../utils/index.js';
 
 export type MicroserviceOptions = {
@@ -135,14 +136,21 @@ export class Microservice {
       },
     );
 
+    const methodWrapAls: MessageHandler<R> = (...args) => {
+      const store = new Map();
+      asyncLocalStorage.enterWith(store);
+
+      methodWrap(...args);
+    };
+
     this.startedMethods[name] = {
-      handler: methodWrap as MessageHandler<unknown>,
+      handler: methodWrapAls as MessageHandler<unknown>,
       config: method,
     };
 
     this.broker.on<R>(
       this.discovery.getMethodSubject(name, method),
-      methodWrap,
+      methodWrapAls,
       method.unbalanced || method.local ? undefined : 'q',
     );
   }

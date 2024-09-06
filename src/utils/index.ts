@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'async_hooks';
 import { threadContext } from 'debug-threads-ns';
 
 export * from './callHandler.js';
@@ -12,3 +13,6 @@ export function attachThreadContext<T extends Action>(threadId: string, callback
   threadContext.init(threadId);
   return callback;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const asyncLocalStorage = new AsyncLocalStorage<Map<string, any>>();
