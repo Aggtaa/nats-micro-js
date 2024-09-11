@@ -1,5 +1,6 @@
 import { ZodError } from 'zod';
 
+// eslint-disable-next-line import/no-cycle
 import { callHandler } from './callHandler.js';
 import { errorToString } from './misc.js';
 import { Broker } from '../broker.js';
