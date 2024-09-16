@@ -10,8 +10,8 @@ import {
 } from '../types/index.js';
 import {
   errorToString, attachThreadContext, wrapMethodSafe,
-  asyncLocalStorage,
 } from '../utils/index.js';
+import { threadContext as threadContextAls } from '../utils/threadContext.js';
 
 export type MicroserviceOptions = {
   noStopMethod?: boolean;
@@ -63,6 +63,7 @@ export class Microservice {
     options?: MicroserviceOptions,
   ): Promise<Microservice> {
     const config = storage.getConfig(target);
+
     if (!config)
       throw new Error('Class not found');
 
@@ -138,7 +139,7 @@ export class Microservice {
 
     const methodWrapAls: MessageHandler<R> = (...args) => {
       const store = new Map();
-      asyncLocalStorage.enterWith(store);
+      threadContextAls.enterWith(store);
 
       methodWrap(...args);
     };

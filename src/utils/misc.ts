@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 
 // eslint-disable-next-line import/no-cycle
-import { ALS_KEY_ADDITIONAL_HEADERS, asyncLocalStorage } from './index.js';
+import { THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS, threadContext } from './threadContext.js';
 import { debug } from '../debug.js';
 import { StatusError } from '../statusError.js';
 import { Headers } from '../types/broker.js';
@@ -61,15 +61,15 @@ export function getSendHeaders(options?: SendOptions): Headers {
 
   if (options?.headers)
     for (const [k, v] of options.headers)
-      if (k !== ALS_KEY_ADDITIONAL_HEADERS)
+      if (k !== THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS)
         allHeaders.push([k, v]);
 
-  const store = asyncLocalStorage.getStore();
+  const store = threadContext.getStore();
 
   debug.broker.debug('getSendHeaders store', store);
 
   if (store)
-    allHeaders.push(...(store.get(ALS_KEY_ADDITIONAL_HEADERS) ?? []));
+    allHeaders.push(...(store.get(THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS) ?? []));
 
   return allHeaders;
 }
