@@ -11,7 +11,6 @@ import {
 import {
   errorToString, attachThreadContext, wrapMethodSafe,
 } from '../utils/index.js';
-import { threadContext as threadContextAls } from '../utils/threadContext.js';
 
 export type MicroserviceOptions = {
   noStopMethod?: boolean;
@@ -137,21 +136,14 @@ export class Microservice {
       },
     );
 
-    const methodWrapAls: MessageHandler<R> = (...args) => {
-      const store = new Map();
-      threadContextAls.enterWith(store);
-
-      methodWrap(...args);
-    };
-
     this.startedMethods[name] = {
-      handler: methodWrapAls as MessageHandler<unknown>,
+      handler: methodWrap,
       config: method,
     };
 
     this.broker.on<R>(
       this.discovery.getMethodSubject(name, method),
-      methodWrapAls,
+      methodWrap,
       method.unbalanced || method.local ? undefined : 'q',
     );
   }

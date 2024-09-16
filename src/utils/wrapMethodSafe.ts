@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 // eslint-disable-next-line import/no-cycle
 import { callHandler } from './callHandler.js';
 import { errorToString } from './misc.js';
+import { threadContext } from './threadContext.js';
 import { Broker } from '../broker.js';
 import { debug } from '../debug.js';
 import { Handler, MessageHandler, MicroserviceHandlerInfo } from '../types/index.js';
@@ -14,6 +15,9 @@ export function wrapMethodSafe<T, R>(
 ): MessageHandler<T> {
   return async (msg, subject) => {
     try {
+      const store = new Map();
+      threadContext.enterWith(store);
+
       let input = msg.data;
       if (handlerInfo.methodConfig.request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
