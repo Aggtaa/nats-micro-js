@@ -66,8 +66,6 @@ export function getSendHeaders(options?: SendOptions): Headers {
 
   const store = threadContext.getStore();
 
-  debug.broker.debug('getSendHeaders store', store);
-
   if (store)
     allHeaders.push(...(store.get(THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS) ?? []));
 
