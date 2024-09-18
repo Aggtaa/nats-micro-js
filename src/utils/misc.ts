@@ -1,8 +1,6 @@
 import { nanoid } from 'nanoid';
 
-// eslint-disable-next-line import/no-cycle
 import { THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS, threadContext } from './threadContext.js';
-import { debug } from '../debug.js';
 import { StatusError } from '../statusError.js';
 import { Headers } from '../types/broker.js';
 import { SendOptions, Subject } from '../types/index.js';
