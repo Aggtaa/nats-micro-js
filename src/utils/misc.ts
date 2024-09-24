@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import { THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS, threadContext } from './threadContext.js';
 import { StatusError } from '../statusError.js';
 import { Headers } from '../types/broker.js';
-import { SendOptions, Subject } from '../types/index.js';
+import { Subject } from '../types/index.js';
 
 export function randomId(): string {
   return nanoid(16);
@@ -54,18 +54,16 @@ export function errorFromHeaders(
   return undefined;
 }
 
-export function getSendHeaders(options?: SendOptions): Headers {
+export function addThreadContextHeaders(headers?: Headers | undefined): Headers {
   const allHeaders = [];
 
-  if (options?.headers)
-    for (const [k, v] of options.headers)
-      if (k !== THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS)
-        allHeaders.push([k, v]);
+  Array.from(headers ?? [])
+    .filter((header) => header[0] !== THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS)
+    .forEach((header) => allHeaders.push(header));
 
   const store = threadContext.getStore();
 
-  if (store)
-    allHeaders.push(...(store.get(THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS) ?? []));
+  allHeaders.push(...(store?.get(THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS) ?? []));
 
   return allHeaders;
 }

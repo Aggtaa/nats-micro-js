@@ -9,7 +9,7 @@ import {
   Headers,
 } from './types/broker.js';
 import {
-  errorFromHeaders, errorToString, getSendHeaders, randomId, subjectToString,
+  errorFromHeaders, errorToString, addThreadContextHeaders, randomId, subjectToString,
 } from './utils/index.js';
 
 export type { ConnectionOptions } from 'nats';
@@ -200,7 +200,7 @@ export class NatsBroker implements Broker {
       subjectToString(subject),
       this.codec.encode(data),
       {
-        headers: this.encodeHeaders(getSendHeaders(options)),
+        headers: this.encodeHeaders(addThreadContextHeaders(options?.headers)),
         reply: (options && options.replyTo)
           ? options.replyTo
           : undefined,
@@ -223,7 +223,7 @@ export class NatsBroker implements Broker {
         subjectToString(subject),
         this.codec.encode(data),
         {
-          headers: this.encodeHeaders(getSendHeaders(options)),
+          headers: this.encodeHeaders(addThreadContextHeaders(options?.headers)),
           noMux: true,
           strategy: (options?.limit ?? 0) < 0
             ? nats.RequestStrategy.Timer
@@ -270,7 +270,7 @@ export class NatsBroker implements Broker {
       subjectToString(subject),
       this.codec.encode(data),
       {
-        headers: this.encodeHeaders(getSendHeaders(options)),
+        headers: this.encodeHeaders(addThreadContextHeaders(options?.headers)),
         noMux: true,
         reply: `_INBOX.${randomId()}`,
         timeout,

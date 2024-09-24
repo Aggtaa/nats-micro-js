@@ -6,7 +6,7 @@ import {
   MessageHandler, Subject, BrokerResponse,
   MessageMaybeReplyTo, RequestManyOptions, RequestOptions, SendOptions,
 } from './types/broker.js';
-import { errorFromHeaders, getSendHeaders, subjectToString } from './utils/index.js';
+import { errorFromHeaders, addThreadContextHeaders, subjectToString } from './utils/index.js';
 
 export class InMemoryBroker implements Broker {
 
@@ -56,7 +56,7 @@ export class InMemoryBroker implements Broker {
       subjectToString(subject),
       {
         data,
-        headers: getSendHeaders(options),
+        headers: addThreadContextHeaders(options?.headers),
         replyTo: options?.replyTo,
       },
     );
@@ -96,7 +96,7 @@ export class InMemoryBroker implements Broker {
 
     this.send(subject, data, {
       replyTo: inbox,
-      headers: getSendHeaders(options),
+      headers: addThreadContextHeaders(options?.headers),
     });
 
     for await (const item of bucket) {
