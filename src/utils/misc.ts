@@ -54,7 +54,7 @@ export function errorFromHeaders(
   return undefined;
 }
 
-export function addThreadContextHeaders(headers?: Headers | undefined): Headers {
+export function addThreadContextHeaders(headers?: Headers): Headers {
   const allHeaders = [];
 
   Array.from(headers ?? [])
