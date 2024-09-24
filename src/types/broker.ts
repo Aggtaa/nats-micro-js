@@ -7,12 +7,12 @@ export type HandlerInfo = {
   method: string;
 };
 
-export type Request<T> = {
+export interface Request<T> {
   data: T;
   subject: string;
   headers?: Headers;
   handler: HandlerInfo;
-};
+}
 
 export const noResponse = Symbol('no reponse');
 

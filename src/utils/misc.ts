@@ -1,6 +1,8 @@
 import { nanoid } from 'nanoid';
 
+import { THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS, threadContext } from './threadContext.js';
 import { StatusError } from '../statusError.js';
+import { Headers } from '../types/broker.js';
 import { Subject } from '../types/index.js';
 
 export function randomId(): string {
@@ -50,4 +52,15 @@ export function errorFromHeaders(
   }
 
   return undefined;
+}
+
+export function addThreadContextHeaders(headers?: Headers): Headers {
+  const allHeaders = Array.from(headers ?? [])
+    .filter((header) => header[0] !== THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS);
+
+  const store = threadContext.getStore();
+
+  allHeaders.push(...(store?.get(THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS) ?? []));
+
+  return allHeaders;
 }

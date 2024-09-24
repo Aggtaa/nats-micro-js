@@ -14,7 +14,7 @@ export * from './decorators/index.js';
 
 export * from './statusError.js';
 
-export { wrapMethod, wrapMethodSafe } from './utils/index.js';
+export { wrapMethod, wrapMethodSafe, threadContext } from './utils/index.js';
 
 export * as z from 'zod';
 

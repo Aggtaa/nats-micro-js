@@ -62,6 +62,7 @@ export class Microservice {
     options?: MicroserviceOptions,
   ): Promise<Microservice> {
     const config = storage.getConfig(target);
+
     if (!config)
       throw new Error('Class not found');
 
@@ -136,7 +137,7 @@ export class Microservice {
     );
 
     this.startedMethods[name] = {
-      handler: methodWrap as MessageHandler<unknown>,
+      handler: methodWrap,
       config: method,
     };
 
