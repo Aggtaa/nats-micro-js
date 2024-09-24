@@ -55,11 +55,8 @@ export function errorFromHeaders(
 }
 
 export function addThreadContextHeaders(headers?: Headers): Headers {
-  const allHeaders = [];
-
-  Array.from(headers ?? [])
-    .filter((header) => header[0] !== THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS)
-    .forEach((header) => allHeaders.push(header));
+  const allHeaders = Array.from(headers ?? [])
+    .filter((header) => header[0] !== THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS);
 
   const store = threadContext.getStore();
 
