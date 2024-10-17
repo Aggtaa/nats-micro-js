@@ -75,17 +75,9 @@ export function addThreadContextHeaders(headers?: Headers): Headers | undefined 
   return allHeaders;
 }
 
-const addPrefix = (str: string, prefix: string) => (str === prefix
-  ? str
-  : `${prefix}-${str}`);
-
-const removePrefix = (str: string, prefix: string) => (str === prefix
-  ? str
-  : str.replace(prefix + '-', ''));
-
-const isContextHeaderKey = (key: string) =>
-  key === headersPrefixContext ||
-  key.split('-')[0] === headersPrefixContext;
+const addPrefix = (str: string, prefix: string) => `${prefix}-${str}`;
+const removePrefix = (str: string, prefix: string) => str.replace(prefix + '-', '');
+const isContextHeaderKey = (key: string) => key.split('-')[0] === headersPrefixContext;
 
 const contextHeadersToObject = (headers: Headers): Record<string, unknown> => {
   const obj = {} as Record<string, unknown>;
