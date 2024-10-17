@@ -7,11 +7,14 @@ export type HandlerInfo = {
   method: string;
 };
 
+export type RequestContext = Record<string, unknown>
+
 export interface Request<T> {
   data: T;
   subject: string;
   headers?: Headers;
   handler: HandlerInfo;
+  context?: RequestContext;
 }
 
 export const noResponse = Symbol('no reponse');
@@ -70,3 +73,5 @@ export type RequestManyOptions = RequestOptions & {
 };
 
 export type SendOptions = Omit<MessageMaybeReplyTo<never>, 'data'>;
+
+export const headersPrefixContext = 'context';
