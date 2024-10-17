@@ -1,7 +1,9 @@
+import { THREAD_CONTEXT_KEY_CONTEXT_HEADERS, threadContext } from './threadContext.js';
 import { ResponseImpl } from '../response.js';
 import {
   Handler, Request, Headers, HandlerInfo,
   ResponseData,
+  RequestContext,
 } from '../types/index.js';
 
 export async function callHandler<T, R>(
@@ -17,6 +19,12 @@ export async function callHandler<T, R>(
     subject,
     headers,
     handler: handlerInfo,
+    get context() {
+      return threadContext.getStore()?.get(THREAD_CONTEXT_KEY_CONTEXT_HEADERS);
+    },
+    set context(ctx: RequestContext) {
+      threadContext.getStore()?.set(THREAD_CONTEXT_KEY_CONTEXT_HEADERS, ctx);
+    },
   };
   const res = new ResponseImpl<R>();
 
