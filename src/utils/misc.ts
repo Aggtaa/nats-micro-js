@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
 
 import { THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS, THREAD_CONTEXT_KEY_CONTEXT_HEADERS, threadContext } from './threadContext.js';
+import { debug } from '../debug.js';
 import { StatusError } from '../statusError.js';
 import { Headers, headersPrefixContext } from '../types/broker.js';
 import { Subject } from '../types/index.js';
@@ -84,7 +85,12 @@ const contextHeadersToObject = (headers: Headers): Record<string, unknown> => {
 
   for (const [key, value] of headers)
     if (isContextHeaderKey(key))
-      obj[removePrefix(key, headersPrefixContext)] = JSON.parse(value);
+      try {
+        obj[removePrefix(key, headersPrefixContext)] = JSON.parse(value);
+      }
+      catch (error) {
+        debug.ms.thread.warn(`Failed to parse context header '${key}' with value '${value}'`);
+      }
 
   return obj;
 };
