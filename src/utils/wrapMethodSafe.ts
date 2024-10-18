@@ -2,8 +2,8 @@ import { ZodError } from 'zod';
 
 // eslint-disable-next-line import/no-cycle
 import { callHandler } from './callHandler.js';
-import { addContextHeadersToThreadContext, errorToString } from './misc.js';
-import { threadContext } from './threadContext.js';
+import { errorToString } from './misc.js';
+import { addContextHeadersToThreadContext, threadContext } from './threadContext.js';
 import { Broker } from '../broker.js';
 import { debug } from '../debug.js';
 import { Handler, MessageHandler, MicroserviceHandlerInfo } from '../types/index.js';

@@ -1,10 +1,8 @@
 import { nanoid } from 'nanoid';
 
-import { THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS, THREAD_CONTEXT_KEY_CONTEXT_HEADERS, threadContext } from './threadContext.js';
 import { debug } from '../debug.js';
 import { StatusError } from '../statusError.js';
-import { Headers, headersPrefixContext } from '../types/broker.js';
-import { Subject } from '../types/index.js';
+import { Headers, headersPrefixContext, Subject } from '../types/index.js';
 
 export function randomId(): string {
   return nanoid(16);
@@ -55,32 +53,12 @@ export function errorFromHeaders(
   return undefined;
 }
 
-export function addThreadContextHeaders(headers?: Headers): Headers | undefined {
-  const store = threadContext.getStore();
+export const addPrefix = (str: string, prefix: string) => `${prefix}-${str}`;
+export const removePrefix = (str: string, prefix: string) => str.replace(prefix + '-', '');
 
-  if (!store)
-    return headers;
-
-  const allHeaders = Array.from(headers ?? [])
-    .filter((header) =>
-      header[0] !== THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS &&
-      header[0] !== THREAD_CONTEXT_KEY_CONTEXT_HEADERS);
-
-  allHeaders.push(...(store.get(THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS) ?? []));
-
-  const contextHeaders = store.get(THREAD_CONTEXT_KEY_CONTEXT_HEADERS);
-
-  Object.entries(contextHeaders ?? {}).forEach(([key, value]) =>
-    allHeaders.push([addPrefix(key, headersPrefixContext), JSON.stringify(value)]));
-
-  return allHeaders;
-}
-
-const addPrefix = (str: string, prefix: string) => `${prefix}-${str}`;
-const removePrefix = (str: string, prefix: string) => str.replace(prefix + '-', '');
 const isContextHeaderKey = (key: string) => key.split('-')[0] === headersPrefixContext;
 
-const contextHeadersToObject = (headers: Headers): Record<string, unknown> => {
+export const contextHeadersToObject = (headers: Headers): Record<string, unknown> => {
   const obj = {} as Record<string, unknown>;
 
   for (const [key, value] of headers)
@@ -93,9 +71,4 @@ const contextHeadersToObject = (headers: Headers): Record<string, unknown> => {
       }
 
   return obj;
-};
-
-export const addContextHeadersToThreadContext = (headers?: Headers) => {
-  const store = threadContext.getStore();
-  store?.set(THREAD_CONTEXT_KEY_CONTEXT_HEADERS, contextHeadersToObject(headers ?? []));
 };
