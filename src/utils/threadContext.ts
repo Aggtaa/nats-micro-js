@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'async_hooks';
 
-import { addPrefix, contextHeadersToObject } from './misc.js';
-import { Headers, headersPrefixContext } from '../types/broker.js';
+import { contextHeadersToObject, objectToContextHeaders } from './misc.js';
+import { Headers } from '../types/broker.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const threadContext = new AsyncLocalStorage<Map<string, any>>();
@@ -23,11 +23,7 @@ export function addThreadContextHeaders(headers?: Headers): Headers | undefined 
       header[0] !== ThreadContextKey.context);
 
   allHeaders.push(...(store.get(ThreadContextKey.additionalHeaders) ?? []));
-
-  const contextHeaders = store.get(ThreadContextKey.context);
-
-  Object.entries(contextHeaders ?? {}).forEach(([key, value]) =>
-    allHeaders.push([addPrefix(key, headersPrefixContext), JSON.stringify(value)]));
+  allHeaders.push(...objectToContextHeaders(store.get(ThreadContextKey.context)));
 
   return allHeaders;
 }
