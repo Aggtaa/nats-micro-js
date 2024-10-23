@@ -74,4 +74,4 @@ export type RequestManyOptions = RequestOptions & {
 
 export type SendOptions = Omit<MessageMaybeReplyTo<never>, 'data'>;
 
-export const headersPrefixContext = 'context';
+export const headersPrefixContext = 'context-';

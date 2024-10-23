@@ -53,10 +53,10 @@ export function errorFromHeaders(
   return undefined;
 }
 
-export const addPrefix = (str: string, prefix: string) => `${prefix}-${str}`;
-export const removePrefix = (str: string, prefix: string) => str.replace(`${prefix}-`, '');
+export const addPrefix = (str: string, prefix: string) => `${prefix}${str}`;
+export const removePrefix = (str: string, prefix: string) => str.replace(prefix, '');
 
-const isContextHeaderKey = (key: string) => key.startsWith(`${headersPrefixContext}-`);
+const isContextHeaderKey = (key: string) => key.startsWith(headersPrefixContext);
 
 export const contextHeadersToObject = (headers: Headers): Record<string, unknown> => {
   const obj = {} as Record<string, unknown>;
