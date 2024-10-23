@@ -23,7 +23,12 @@ export async function callHandler<T, R>(
       return threadContext.getStore()?.get(ThreadContextKey.context);
     },
     set context(ctx: RequestContext) {
-      threadContext.getStore()?.set(ThreadContextKey.context, ctx);
+      const store = threadContext.getStore();
+
+      if (!store)
+        throw new Error('Thread context is not available');
+
+      store.set(ThreadContextKey.context, ctx);
     },
   };
   const res = new ResponseImpl<R>();
