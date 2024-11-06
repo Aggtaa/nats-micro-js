@@ -40,6 +40,7 @@ export type BaseMicroserviceData = {
     '_nats.client.id': string,
     '_nats.client.created.library': string,
     '_nats.client.created.version': string,
+    [x: string]: string,
   },
 };
 

@@ -11,6 +11,7 @@ import {
 import {
   errorToString, attachThreadContext, wrapMethodSafe,
 } from '../utils/index.js';
+import { deprecate } from 'util';
 
 export type MicroserviceOptions = {
   noStopMethod?: boolean;
@@ -84,15 +85,33 @@ export class Microservice {
     return Object.freeze(this.discovery.config);
   }
 
-  public on(event: 'close', listener: () => void): void {
-    this.ee.on(event, listener);
+  public on(event: 'stop', listener: () => void): void;
+  public on(event: 'close', listener: () => void): void;
+  public on(event: string, listener: () => void): void {
+    if (event === 'close')
+      deprecate(
+        () => this.on('stop', listener),
+        'close is deprecated. Use stop instead',
+      );
+    else
+      this.ee.on(event, listener);
   }
 
-  public off(event: 'close', listener: () => void): void {
-    this.ee.off(event, listener);
+  public off(event: 'stop', listener: () => void): void;
+  public off(event: 'close', listener: () => void): void;
+  public off(event: string, listener: () => void): void {
+    if (event === 'close')
+      deprecate(
+        () => this.off('stop', listener),
+        'close is deprecated. Use stop instead',
+      );
+    else
+      this.ee.off(event, listener);
   }
 
-  private emit(event: 'close'): void {
+  private emit(event: 'stop'): void;
+  private emit(event: 'close'): void;
+  private emit(event: string): void {
     this.ee.emit(event);
   }
 
@@ -198,6 +217,7 @@ export class Microservice {
   }
 
   private async handleStop(): Promise<void> {
+    this.emit('stop');
     this.emit('close');
     await this.stop();
   }

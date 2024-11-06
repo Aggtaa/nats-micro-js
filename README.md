@@ -1,6 +1,6 @@
 # [NATS Microservice Library](#top)
 
-![](https://img.shields.io/badge/Coverage-93%25-83A603.svg?style=flat&prefix=$coverage$)
+![](https://img.shields.io/badge/Coverage-92%25-83A603.svg?style=flat&prefix=$coverage$)
 
 A convenient microservice library based on NATS and compatible with nats-go microservices
 
