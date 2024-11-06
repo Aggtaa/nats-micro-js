@@ -22,6 +22,15 @@ export class InMemoryBroker implements Broker {
     this.clientId = InMemoryBroker.nextClientId++;
   }
 
+  public async connect(): Promise<this> {
+    // nothing to do
+    return this;
+  }
+
+  public async disconnect(): Promise<void> {
+    // nothing to do
+  }
+
   createInbox(): string {
     return `_INBOX.${Math.floor(Math.random() * 1e10)}`;
   }

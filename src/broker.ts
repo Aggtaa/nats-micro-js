@@ -8,6 +8,9 @@ export interface Broker {
 
   get name(): string;
 
+  connect(): Promise<this>;
+  disconnect(): Promise<void>;
+
   createInbox(): string;
 
   on<T>(

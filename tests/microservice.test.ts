@@ -255,7 +255,7 @@ describe('Microservice and Discovery', function () {
       const service = await createService();
 
       const spy = Sinon.spy();
-      service.on('close', spy);
+      service.on('stop', spy);
 
       await broker.send(`hello.${service.id}.microservice_stop`, '');
 
@@ -267,8 +267,8 @@ describe('Microservice and Discovery', function () {
       const service = await createService();
 
       const spy = Sinon.spy();
-      service.on('close', spy);
-      service.off('close', spy);
+      service.on('stop', spy);
+      service.off('stop', spy);
 
       await broker.send(`hello.${service.id}.microservice_stop`, '');
 
