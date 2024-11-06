@@ -1,7 +1,9 @@
+import { ThreadContextKey, threadContext } from './threadContext.js';
 import { ResponseImpl } from '../response.js';
 import {
   Handler, Request, Headers, HandlerInfo,
   ResponseData,
+  RequestContext,
 } from '../types/index.js';
 
 export async function callHandler<T, R>(
@@ -17,6 +19,17 @@ export async function callHandler<T, R>(
     subject,
     headers,
     handler: handlerInfo,
+    get context() {
+      return threadContext.getStore()?.get(ThreadContextKey.context);
+    },
+    set context(ctx: RequestContext) {
+      const store = threadContext.getStore();
+
+      if (!store)
+        throw new Error('Thread context is not available');
+
+      store.set(ThreadContextKey.context, ctx);
+    },
   };
   const res = new ResponseImpl<R>();
 

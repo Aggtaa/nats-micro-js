@@ -1,9 +1,8 @@
 import { nanoid } from 'nanoid';
 
-import { THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS, threadContext } from './threadContext.js';
+import { debug } from '../debug.js';
 import { StatusError } from '../statusError.js';
-import { Headers } from '../types/broker.js';
-import { Subject } from '../types/index.js';
+import { Headers, headersPrefixContext, Subject } from '../types/index.js';
 
 export function randomId(): string {
   return nanoid(16);
@@ -54,13 +53,30 @@ export function errorFromHeaders(
   return undefined;
 }
 
-export function addThreadContextHeaders(headers?: Headers): Headers {
-  const allHeaders = Array.from(headers ?? [])
-    .filter((header) => header[0] !== THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS);
+const addPrefix = (str: string, prefix: string) => `${prefix}${str}`;
+const removePrefix = (str: string, prefix: string) => str.replace(prefix, '');
+const isContextHeaderKey = (key: string) => key.startsWith(headersPrefixContext);
 
-  const store = threadContext.getStore();
+export const contextHeadersToObject = (headers: Headers): Record<string, unknown> => {
+  const obj = {} as Record<string, unknown>;
 
-  allHeaders.push(...(store?.get(THREAD_CONTEXT_KEY_ADDITIONAL_HEADERS) ?? []));
+  for (const [key, value] of headers)
+    if (isContextHeaderKey(key))
+      try {
+        obj[removePrefix(key, headersPrefixContext)] = JSON.parse(value);
+      }
+      catch (error) {
+        debug.ms.thread.warn(`Failed to parse context header '${key}' with value '${value}'`);
+      }
 
-  return allHeaders;
-}
+  return obj;
+};
+
+export const objectToContextHeaders = (object: Record<string, unknown>): Headers => {
+  const headers: string[][] = [];
+
+  for (const [key, value] of Object.entries(object))
+    headers.push([addPrefix(key, headersPrefixContext), JSON.stringify(value)]);
+
+  return headers as Headers;
+};
