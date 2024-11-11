@@ -31,7 +31,7 @@ export function wrapMethodSafe<T, R>(
           }
           catch (err) {
             if (err instanceof ZodError) {
-              throw new Error(`Invalid request type: ${err.issues.map((i) => `${i.message} (${i.path.join('.')})`).join(', ')}`);
+              throw new Error(`Error parsing request fields: ${err.issues.map((i) => `${i.path.join('.')} (${i.message})`).join(', ')}`);
             }
 
             throw err;
