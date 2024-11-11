@@ -118,7 +118,7 @@ export class NatsBroker implements Broker {
     const result = nats.headers();
     if (headers)
       for (const [k, v] of headers)
-        result.append(k, v);
+        result.append(k, v.replace(/[\r\n]+/, ' '));
 
     return result;
   }
