@@ -1,4 +1,4 @@
-import { PartialBy } from './types.js';
+import { MaybePromise, PartialBy } from './types.js';
 
 export type Headers = Iterable<[string, string]>;
 
@@ -32,8 +32,7 @@ export type Response<R> = {
   sendNoResponse: () => void;
 };
 
-export type Handler<T, R, RR = (void | PromiseLike<void>)> =
-  (req: Request<T>, res: Response<R>) => RR;
+export type Handler<T, R, RR = MaybePromise<void>> = (req: Request<T>, res: Response<R>) => RR;
 
 export type MicroserviceSubject = {
   microservice: string;
