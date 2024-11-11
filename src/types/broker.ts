@@ -32,7 +32,9 @@ export type Response<R> = {
   sendNoResponse: () => void;
 };
 
-export type Handler<T, R, RR> = (req: Request<T>, res: Response<R>) => RR;
+export type Handler<T, R, RR = (void | PromiseLike<void>)> =
+  (req: Request<T>, res: Response<R>) => RR;
+
 export type MicroserviceSubject = {
   microservice: string;
   instance?: string; // for calls to "local" methods
