@@ -8,7 +8,7 @@ export type MethodDecoratorOptions<T, R> =
 
 export type MethodDescriptor<T, R> =
   | TypedPropertyDescriptor<Handler<T, R, void>>
-  | TypedPropertyDescriptor<Handler<T, R, PromiseLike<void>>>;
+  | TypedPropertyDescriptor<Handler<T, R, Promise<void>>>;
 
 export type MicroserviceDecoratorOptions =
   Partial<
