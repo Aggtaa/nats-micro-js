@@ -23,7 +23,7 @@ export class NatsBroker implements Broker {
   private connectionClosedWaiter: Promise<void | Error> | undefined;
   // eslint-disable-next-line new-cap
   private readonly codec = nats.JSONCodec();
-  private subscriptions: Record<string, nats.Subscription> = {};
+  private subscriptions: Record<string, Map<MessageHandler<never>, nats.Subscription>> = {};
 
   // eslint-disable-next-line no-useless-constructor, no-empty-function
   constructor(public readonly options: nats.ConnectionOptions) {
@@ -170,9 +170,16 @@ export class NatsBroker implements Broker {
     queue: string | undefined = undefined,
   ): void {
     const subj = subjectToString(subject);
+
     if (!this.subscriptions[subj]) {
-      this.subscriptions[subj] = this.subscribe(subj, queue);
+      this.subscriptions[subj] = new Map();
     }
+
+    if (!this.subscriptions[subj].has(listener)) {
+      const subscription = this.subscribe(subj, queue);
+      this.subscriptions[subj].set(listener, subscription);
+    }
+
     this.ee.on(subj, listener);
   }
 
@@ -181,10 +188,19 @@ export class NatsBroker implements Broker {
     listener: MessageHandler<T>,
   ): void {
     const subj = subjectToString(subject);
+
     if (this.subscriptions[subj]) {
-      this.unsubscribe(this.subscriptions[subj]);
-      delete (this.subscriptions[subj]);
+      const subscription = this.subscriptions[subj].get(listener);
+
+      if (subscription) {
+        this.unsubscribe(subscription);
+
+        if (this.subscriptions[subj].size === 0) {
+          delete (this.subscriptions[subj]);
+        }
+      }
     }
+
     this.ee.off(subj, listener);
   }
 
