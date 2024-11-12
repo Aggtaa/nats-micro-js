@@ -92,7 +92,8 @@ describe('Microservice and Discovery', function () {
 
   describe('dynamic config', function () {
 
-    const registrationCounter = Sinon.stub<[MessageMaybeReplyTo<MicroserviceRegistration>, string]>();
+    const registrationCounter =
+      Sinon.stub<[MessageMaybeReplyTo<MicroserviceRegistration>, string]>();
 
     beforeEach(function () {
       broker.on(MicroserviceRegistrationSubject, registrationCounter);
