@@ -6,7 +6,9 @@ export type MethodDecoratorOptions<T, R> =
   { name?: string; } &
   PartialBy<Omit<MicroserviceMethodConfig<T, R>, 'handler'>, 'subject' | 'metadata'>;
 
-export type MethodDescriptor<T, R> = TypedPropertyDescriptor<Handler<T, R>>;
+export type MethodDescriptor<T, R> =
+  | TypedPropertyDescriptor<Handler<T, R, void>>
+  | TypedPropertyDescriptor<Handler<T, R, Promise<void>>>;
 
 export type MicroserviceDecoratorOptions =
   Partial<
