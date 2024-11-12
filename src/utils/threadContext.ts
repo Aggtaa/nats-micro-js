@@ -23,7 +23,7 @@ export function addThreadContextHeaders(headers?: Headers): Headers | undefined 
       header[0] !== ThreadContextKey.context);
 
   allHeaders.push(...(store.get(ThreadContextKey.additionalHeaders) ?? []));
-  allHeaders.push(...objectToContextHeaders(store.get(ThreadContextKey.context)));
+  allHeaders.push(...objectToContextHeaders(store.get(ThreadContextKey.context) ?? {}));
 
   return allHeaders;
 }
