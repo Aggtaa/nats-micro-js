@@ -1,5 +1,6 @@
 import { threadContext } from 'debug-threads-ns';
 import EventEmitter from 'events';
+import { deprecate } from 'util';
 
 import { Discovery } from './discovery.js';
 import { Broker } from '../broker.js';
@@ -11,7 +12,6 @@ import {
 import {
   errorToString, attachThreadContext, wrapMethodSafe,
 } from '../utils/index.js';
-import { deprecate } from 'util';
 
 export type MicroserviceOptions = {
   noStopMethod?: boolean;
