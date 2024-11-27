@@ -144,7 +144,7 @@ export class Monitor {
         return;
       }
 
-      debug.monitor.info(`Server ${server.server.id} connections: ${connz.data.connections.map((c) => c.cid)}`);
+      debug.monitor.debug(`Server ${server.server.id} connections: ${connz.data.connections.map((c) => c.cid)}`);
 
       for (const connection of connz.data.connections) {
         this.connections[connection.cid] = {
@@ -170,7 +170,7 @@ export class Monitor {
           const conn = this.connections[clientId];
           if (conn) {
             service.connection = conn;
-            debug.monitor.info(`Updated microservice ${service.name}.${service.id} to client ${clientId}'s connection`);
+            debug.monitor.debug(`Updated microservice ${service.name}.${service.id} to client ${clientId}'s connection`);
             this.emit('added', service);
           }
         }

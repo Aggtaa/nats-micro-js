@@ -7,6 +7,7 @@ import { debug } from '../debug.js';
 import { storage } from '../decorators/storage.js';
 import {
   Handler, MessageHandler, MicroserviceConfig, MicroserviceMethodConfig,
+  Request, Response,
 } from '../types/index.js';
 import {
   errorToString, attachThreadContext, wrapMethodSafe,
@@ -42,7 +43,7 @@ export class Microservice {
       {
         transformConfig: this.options?.noStopMethod
           ? undefined
-          : this.transformConfig.bind(this),
+          : this.addMicroserviceStopToConfig.bind(this),
       },
     );
   }
@@ -87,7 +88,7 @@ export class Microservice {
   }
 
   public on(event: 'stop', listener: () => void): void;
-  public on(event: 'close', listener: () => void): void;
+  public on(event: 'close', listener: () => void): void; // close is deprecated
   public on(event: string, listener: () => void): void {
     if (event === 'close')
       deprecate(
@@ -99,7 +100,7 @@ export class Microservice {
   }
 
   public off(event: 'stop', listener: () => void): void;
-  public off(event: 'close', listener: () => void): void;
+  public off(event: 'close', listener: () => void): void; // close is deprecated
   public off(event: string, listener: () => void): void {
     if (event === 'close')
       deprecate(
@@ -111,12 +112,12 @@ export class Microservice {
   }
 
   private emit(event: 'stop'): void;
-  private emit(event: 'close'): void;
+  private emit(event: 'close'): void; // close is deprecated
   private emit(event: string): void {
     this.ee.emit(event);
   }
 
-  private transformConfig(config: MicroserviceConfig): MicroserviceConfig {
+  private addMicroserviceStopToConfig(config: MicroserviceConfig): MicroserviceConfig {
     return {
       ...config,
       methods: {
@@ -217,10 +218,9 @@ export class Microservice {
     return this;
   }
 
-  private async handleStop(): Promise<void> {
-    this.emit('stop');
-    this.emit('close');
+  private async handleStop(_req: Request<void>, res: Response<void>): Promise<void> {
     await this.stop();
+    res.send(undefined);
   }
 
   public async stop(): Promise<this> {
@@ -235,6 +235,9 @@ export class Microservice {
       await this.stopMethod(name, method);
 
     await this.discovery.stop();
+
+    this.emit('stop');
+    this.emit('close'); // close is deprecated
 
     return this;
   }

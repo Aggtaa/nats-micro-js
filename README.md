@@ -132,10 +132,21 @@ await Microservice.createFromClass(broker, echoMicroservice);
 
 ## [Stopping a microservice](#stopping)
 
-You can easily stop a microservice
+You can easily stop a microservice from code having a reference to the microservice
 ```ts
 const ms = await Microservice.createFromClass(broker, echoMicroservice);
 await ms.stop();
+```
+
+Or you can stop a microservice from broker by calling 'microservice_stop' endpoint, 
+which is present on every microservice 
+(unless you use `noStopMethod` flag in the `create` and `createFromClass` `options` argument)
+
+Every microservice has an internal event emitter so that you can subsctibe to a 'stop' event 
+and perform any additinal cleanup the microservice requires
+```ts
+const ms = await Microservice.createFromClass(broker, echoMicroservice);
+ms.on('stop', () => { cleanupApplication(); }); // emitted by ms.stop() or by incoming 'microservice_stop' broker message
 ```
 
 To start if again just use the same code as before:

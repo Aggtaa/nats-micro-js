@@ -257,7 +257,7 @@ describe('Microservice and Discovery', function () {
       const spy = Sinon.spy();
       service.on('stop', spy);
 
-      await broker.send(`hello.${service.id}.microservice_stop`, '');
+      await broker.request(`hello.${service.id}.microservice_stop`, '');
 
       expect(spy.calledOnce).to.be.true;
     });
@@ -270,7 +270,7 @@ describe('Microservice and Discovery', function () {
       service.on('stop', spy);
       service.off('stop', spy);
 
-      await broker.send(`hello.${service.id}.microservice_stop`, '');
+      await broker.request(`hello.${service.id}.microservice_stop`, '');
 
       expect(spy.calledOnce).to.be.false;
     });
