@@ -32,7 +32,8 @@ export type Response<R> = {
   sendNoResponse: () => void;
 };
 
-export type Handler<T, R, RR = void> = (req: Request<T>, res: Response<R>) => MaybePromise<RR>;
+export type Handler<T, R, RR = MaybePromise<void>> = (req: Request<T>, res: Response<R>) => RR;
+
 export type MicroserviceSubject = {
   microservice: string;
   instance?: string; // for calls to "local" methods
