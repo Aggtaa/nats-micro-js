@@ -214,7 +214,7 @@ export class Monitor {
         idx++;
     }
 
-    debug.monitor.info(`Client ${clientId} disconnected, removing ${count} microservices`);
+    debug.monitor.debug(`Client ${clientId} disconnected, removing ${count} microservices`);
 
     delete (this.connections[connection.client.id]);
 
@@ -251,7 +251,7 @@ export class Monitor {
     const clientId = this.getServiceClientId(service);
     const connection = this.getServiceConnectionInfo(service);
 
-    debug.monitor.info(`${idx >= 0 ? 'Updated' : 'New'} microservice ${service.name}.${service.id} on client ${clientId}${connection ? '' : ' (unknown connection)'}`);
+    debug.monitor.debug(`${idx >= 0 ? 'Updated' : 'New'} microservice ${service.name}.${service.id} on client ${clientId}${connection ? '' : ' (unknown connection)'}`);
 
     if (idx >= 0) {
       this.services[idx] = {
@@ -277,7 +277,7 @@ export class Monitor {
 
     if (idx >= 0) {
 
-      debug.monitor.info(`Removing microservice ${service.name}.${service.id}`);
+      debug.monitor.debug(`Removing microservice ${service.name}.${service.id}`);
 
       this.services.splice(idx, 1);
 
