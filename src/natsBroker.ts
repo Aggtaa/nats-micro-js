@@ -23,7 +23,7 @@ export class NatsBroker implements Broker {
   private connectionClosedWaiter: Promise<void | Error> | undefined;
   // eslint-disable-next-line new-cap
   private readonly codec = nats.JSONCodec();
-  private subscriptions: Record<string, Map<MessageHandler<never>, nats.Subscription>> = {};
+  private subscriptions: Record<string, nats.Subscription> = {};
 
   // eslint-disable-next-line no-useless-constructor, no-empty-function
   constructor(public readonly options: nats.ConnectionOptions) {
@@ -100,7 +100,7 @@ export class NatsBroker implements Broker {
           },
         );
       }
-      catch {
+      catch (ex) {
         let content: string;
         try {
           content = msg.string();
@@ -109,6 +109,7 @@ export class NatsBroker implements Broker {
           content = `${msg.data.byteLength} bytes`;
         }
         debug.broker.error(`Error decoding JSON from "${content}"`);
+        debug.broker.debug(String(ex));
       }
     }
   }
@@ -172,12 +173,7 @@ export class NatsBroker implements Broker {
     const subj = subjectToString(subject);
 
     if (!this.subscriptions[subj]) {
-      this.subscriptions[subj] = new Map();
-    }
-
-    if (!this.subscriptions[subj].has(listener)) {
-      const subscription = this.subscribe(subj, queue);
-      this.subscriptions[subj].set(listener, subscription);
+      this.subscriptions[subj] = this.subscribe(subj, queue);
     }
 
     this.ee.on(subj, listener);
@@ -188,20 +184,14 @@ export class NatsBroker implements Broker {
     listener: MessageHandler<T>,
   ): void {
     const subj = subjectToString(subject);
+    this.ee.off(subj, listener);
 
     if (this.subscriptions[subj]) {
-      const subscription = this.subscriptions[subj].get(listener);
-
-      if (subscription) {
-        this.unsubscribe(subscription);
-
-        if (this.subscriptions[subj].size === 0) {
-          delete (this.subscriptions[subj]);
-        }
+      if (!this.ee['handlers'].find((handler) => handler.wildcard === subj)) {
+        this.unsubscribe(this.subscriptions[subj]);
+        delete (this.subscriptions[subj]);
       }
     }
-
-    this.ee.off(subj, listener);
   }
 
   public async send<T>(
