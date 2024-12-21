@@ -10,17 +10,21 @@ import { MessageHandler } from '../src/types/broker.js';
 
 let ee: InstanceType<typeof EventEmitter>;
 
-function emit(event: string, data: nats.Payload): void {
-  ee.emit(event, data);
-}
+const natsSubscriptions = {
+  add: (event: string, listener: (data: nats.Payload) => void) : void => {
+    ee.on(event, listener);
+  },
 
-function on(event: string, listener: (data: nats.Payload) => void): void {
-  ee.on(event, listener);
-}
+  remove: (event: string, listener: (data: nats.Payload) => void): void => {
+    ee.off(event, listener);
+  },
 
-function off(event: string, listener: (data: nats.Payload) => void): void {
-  ee.off(event, listener);
-}
+  emit: (event: string, data: nats.Payload) : void => {
+    ee.emit(event, data);
+  },
+
+  count: (event: string): number => ee.listeners(event).length,
+};
 
 const JSONCodec: () => nats.Codec<unknown> = () => ({
   encode: (data: unknown): Uint8Array => {
@@ -53,10 +57,10 @@ const subscribe = sinon.stub<
         json: sinon.stub(),
       });
 
-      on(subject, listener);
+      natsSubscriptions.add(subject, listener);
 
       const subscription: Partial<nats.Subscription> = {
-        unsubscribe: () => off(subject, listener),
+        unsubscribe: () => natsSubscriptions.remove(subject, listener),
         getSubject: () => subject,
       };
 
@@ -78,7 +82,7 @@ const publish = sinon.stub<
   ) => {
 
     if (data)
-      emit(subject, data);
+      natsSubscriptions.emit(subject, data);
   });
 
 const connect = sinon.stub<
@@ -177,7 +181,17 @@ describe('NatsBroker', function () {
       expect(handler2).to.be.calledTwice;
     });
 
-    it('expect to have one subscription to a subject if any handlers subscribed to that subject', async function () {
+    it('expect nats to be subscribed to a subject once if a handler subscribed to that subject', async function () {
+      const data = { key: 'value' };
+
+      const handler1 = sinon.stub() as MessageHandler<typeof data>;
+
+      natsBroker.on('subject', handler1);
+
+      expect(natsSubscriptions.count('subject')).to.equal(1);
+    });
+
+    it('expect nats to be subscribed to a subject once if multiple handlers subscribed to that subject', async function () {
       const data = { key: 'value' };
 
       const handler1 = sinon.stub() as MessageHandler<typeof data>;
@@ -186,7 +200,7 @@ describe('NatsBroker', function () {
       natsBroker.on('subject', handler1);
       natsBroker.on('subject', handler2);
 
-      expect(ee.listeners('subject')).to.have.length(1);
+      expect(natsSubscriptions.count('subject')).to.equal(1);
     });
   });
 
@@ -238,7 +252,7 @@ describe('NatsBroker', function () {
       expect(handler1).to.be.calledOnce;
     });
 
-    it('expect to have one subscription to a subject if some handlers subscribed from that subject', async function () {
+    it('expect nats to still be subscribed to a subject once if some handlers unsubscribed from that subject', async function () {
       const data = { key: 'value' };
 
       const handler1 = sinon.stub() as MessageHandler<typeof data>;
@@ -249,10 +263,10 @@ describe('NatsBroker', function () {
 
       natsBroker.off('subject', handler2);
 
-      expect(ee.listeners('subject')).to.have.length(1);
+      expect(natsSubscriptions.count('subject')).to.equal(1);
     });
 
-    it('expect to not have subscription to a subject if all handlers unsubscribed from that subject', async function () {
+    it('expect nats not to be subscribed to a subject if all handlers unsubscribed from that subject', async function () {
       const data = { key: 'value' };
 
       const handler1 = sinon.stub() as MessageHandler<typeof data>;
@@ -264,7 +278,7 @@ describe('NatsBroker', function () {
       natsBroker.off('subject', handler1);
       natsBroker.off('subject', handler2);
 
-      expect(ee.listeners('subject')).to.have.length(0);
+      expect(natsSubscriptions.count('subject')).to.equal(0);
     });
   });
 
