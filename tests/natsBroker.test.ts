@@ -9,6 +9,7 @@ import { NatsBroker } from '../src/natsBroker.js';
 import { MessageHandler } from '../src/types/broker.js';
 
 let ee: InstanceType<typeof EventEmitter>;
+let natsHeaders: nats.MsgHdrs;
 
 const natsSubscriptions = {
   add: (event: string, listener: (data: nats.Payload) => void) : void => {
@@ -100,6 +101,11 @@ const connect = sinon.stub<
     return connection as any;
   });
 
+const headers = sinon.stub<
+  Parameters<typeof nats['headers']>,
+  ReturnType<typeof nats['headers']>
+  >().callsFake(() => natsHeaders);
+
 describe('NatsBroker', function () {
 
   let natsBroker: NatsBroker;
@@ -110,12 +116,14 @@ describe('NatsBroker', function () {
       nats: {
         JSONCodec,
         connect,
+        headers,
       },
     });
   });
 
   beforeEach(async function () {
     ee = new EventEmitter();
+    natsHeaders = new nats.MsgHdrsImpl();
     natsBroker = new stubModule.NatsBroker({ name: 'TestBroker' });
     await natsBroker.connect();
   });
@@ -279,6 +287,49 @@ describe('NatsBroker', function () {
       natsBroker.off('subject', handler2);
 
       expect(natsSubscriptions.count('subject')).to.equal(0);
+    });
+  });
+
+  describe('encodeHeaders', function () {
+    it('should set single header value', async function () {
+      const newHeaders: [string, string][] = [['key', 'value']];
+    
+      natsBroker['encodeHeaders'](newHeaders);
+
+      expect(natsHeaders.values('key')).to.eql(['value']);
+    });
+
+    it('should set multiple header values', async function () {
+      const newHeaders: [string, string][] = [['key', 'value1'], ['key', 'value2']];
+
+      natsBroker['encodeHeaders'](newHeaders);
+
+      expect(natsHeaders.values('key')).to.eql(['value1', 'value2']);
+    });
+
+    it('should append header values', async function () {
+      natsHeaders.set('key', 'old_value');
+      const newHeaders: [string, string][] = [['key', 'new_value1'], ['key', 'new_value2']];
+
+      natsBroker['encodeHeaders'](newHeaders);
+
+      expect(natsHeaders.values('key')).to.eql(['old_value', 'new_value1', 'new_value2']);
+    });
+
+    it('should replace newline characters in header value', async function () {
+      const newHeaders: [string, string][] = [['key', 'line1\nline2\r\nline3\n\n\nline4']];
+
+      natsBroker['encodeHeaders'](newHeaders);
+
+      expect(natsHeaders.values('key')).to.eql(['line1 line2 line3 line4']);
+    });
+
+    it('should change nothing if nothing passed', async function () {
+      natsHeaders.set('key', 'value');
+
+      natsBroker['encodeHeaders']();
+
+      expect(natsHeaders.values('key')).to.eql(['value']);
     });
   });
 
